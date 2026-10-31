@@ -36,6 +36,27 @@ const DEFAULTS := {
 	"bot_difficulty": 1,            # 0 easy / 1 normal / 2 hard
 }
 
+## Legal range for every numeric key. `load_settings()` clamps through this table, so a
+## hand-edited or stale `user://settings.cfg` can never produce an unusable camera,
+## a 100000 FPS cap or a negative match length.
+const RANGES := {
+	"look_sensitivity": Vector2(0.05, 1.5),
+	"ads_sensitivity_mult": Vector2(0.2, 1.0),
+	"aim_assist_strength": Vector2(0.0, 1.0),
+	"aim_assist_radius": Vector2(2.0, 30.0),
+	"aim_assist_fov": Vector2(5.0, 60.0),
+	"graphics_quality": Vector2(0, 2),
+	"render_scale": Vector2(0.6, 1.0),
+	"sound_volume": Vector2(0.0, 1.0),
+	"music_volume": Vector2(0.0, 1.0),
+	"fps_limit": Vector2(0, 120),
+	"hud_scale": Vector2(0.75, 1.4),
+	"score_limit": Vector2(5, 500),
+	"match_minutes": Vector2(1.0, 60.0),
+	"respawn_delay": Vector2(0.0, 15.0),
+	"bot_difficulty": Vector2(0, 2),
+}
+
 var _data: Dictionary = {}
 
 
@@ -55,7 +76,7 @@ func load_settings() -> void:
 	for key in DEFAULTS.keys():
 		var value: Variant = cfg.get_value(SECTION, key, _data[key])
 		if typeof(value) == typeof(DEFAULTS[key]):
-			_data[key] = value
+			_data[key] = _clamp_value(key, value)
 
 
 func save_settings() -> void:
@@ -65,6 +86,28 @@ func save_settings() -> void:
 		cfg.set_value(SECTION, key, _data[key])
 	cfg.save(CONFIG_PATH)
 	changed.emit("saved", null)
+
+
+## Clamps a value into its legal range. Non-numeric keys pass through untouched.
+func _clamp_value(key: String, value: Variant) -> Variant:
+	# fps_limit is an enum in the UI, so snap it to the nearest offered value instead of
+	# merely clamping: a config holding 47 would otherwise leave the option button on a
+	# value it cannot display.
+	if key == "fps_limit":
+		var wanted := int(value)
+		var best := FPS_LIMITS[0]
+		for candidate: int in FPS_LIMITS:
+			if absi(candidate - wanted) < absi(best - wanted):
+				best = candidate
+		return best
+	if not RANGES.has(key):
+		return value
+	var limits: Vector2 = RANGES[key]
+	if typeof(value) == TYPE_INT:
+		return clampi(int(value), int(limits.x), int(limits.y))
+	if typeof(value) == TYPE_FLOAT:
+		return clampf(float(value), limits.x, limits.y)
+	return value
 
 
 func reset_to_defaults() -> void:
@@ -94,6 +137,7 @@ func set_value(key: String, value: Variant) -> void:
 	if not _data.has(key) and not DEFAULTS.has(key):
 		push_warning("Settings: unknown key '%s'" % key)
 		return
+	value = _clamp_value(key, value)
 	if _data.get(key) == value:
 		return
 	_data[key] = value
