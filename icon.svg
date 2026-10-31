@@ -1,0 +1,14 @@
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <rect width="128" height="128" rx="20" ry="20" fill="#12161c"/>
+  <rect x="6" y="6" width="116" height="116" rx="16" ry="16" fill="none" stroke="#ff8529" stroke-width="2" opacity="0.75"/>
+  <!-- crosshair -->
+  <circle cx="64" cy="64" r="26" fill="none" stroke="#ff8529" stroke-width="3" opacity="0.95"/>
+  <line x1="64" y1="24" x2="64" y2="44" stroke="#f4f5f7" stroke-width="4"/>
+  <line x1="64" y1="84" x2="64" y2="104" stroke="#f4f5f7" stroke-width="4"/>
+  <line x1="24" y1="64" x2="44" y2="64" stroke="#f4f5f7" stroke-width="4"/>
+  <line x1="84" y1="64" x2="104" y2="64" stroke="#f4f5f7" stroke-width="4"/>
+  <circle cx="64" cy="64" r="4" fill="#ff8529"/>
+  <!-- CB monogram -->
+  <text x="64" y="86" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="bold"
+        text-anchor="middle" fill="#12161c" opacity="0">CB</text>
+</svg>
