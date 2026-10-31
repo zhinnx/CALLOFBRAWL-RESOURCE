@@ -319,8 +319,16 @@ appear on the second one):
    `Game.kill_feed` and never disconnected. Each restart left the old HUD connected: the
    callback fired into freed nodes and the next HUD reacted twice to every kill and every
    setting change. `mobile_input_controller` had the same problem with `Settings.changed`.
-   Both now release their connections on `tree_exiting`. New check #11
-   (`signal_leak.py`) enforces this for all four autoloads.
+   Both now release their connections on `tree_exiting`. `CBMatchManager` had the mirror
+   image of the same bug: the correct `Game.score_changed.disconnect()` sat inside
+   `stop()`, and **nothing ever called `stop()`**, so returning to the menu left the
+   connection behind and every later match added another one. `setup()` now wires
+   `tree_exiting` to `stop()`.
+   New check #11 (`signal_leak.py`) enforces this for all four autoloads - and it had to be
+   strengthened after that finding: it now requires the disconnect to be reachable from a
+   teardown hook (`_exit_tree` / `_on_tree_exiting` / `_notification` / a `tree_exiting`
+   handler) rather than merely existing somewhere in the file. Verified both ways: a
+   disconnect inside an uncalled `stop()` is reported, one inside `_exit_tree` passes.
 2. **Layout crashes during teardown.** `get_viewport().size_changed` was connected forever
    and `_layout_controls()` dereferenced the controls without checking they exist. On
    Android the viewport size changes when the app is backgrounded or the device rotates

@@ -35,6 +35,10 @@ var _last_shown_second: int = -1
 func setup(loader: CBMapLoader, local_player: CBPlayerController) -> void:
 	map_loader = loader
 	player = local_player
+	# `Game` is an autoload and outlives this node. Leaving to the main menu already
+	# freed the MatchManager, but nothing had disconnected it, so the connection stayed
+	# behind and every later match added another one.
+	tree_exiting.connect(stop)
 
 
 # ---------------------------------------------------------------- match flow
