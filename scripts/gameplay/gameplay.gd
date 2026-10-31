@@ -139,6 +139,11 @@ func _build_ui() -> void:
 	settings_panel = CBSettingsPanel.new()
 	settings_panel.name = "SettingsPanel"
 	settings_panel.visible = false
+	# The HUD builds its modal menu during _ready(); this panel is added afterwards, so
+	# it would be drawn underneath the pause buttons. The pause menu hides its own
+	# buttons while this is open, but the draw order is set explicitly as well so the
+	# panel is always in front of everything the HUD paints.
+	settings_panel.z_index = 100
 	hud.add_child(settings_panel)
 	settings_panel.closed.connect(_on_settings_closed)
 

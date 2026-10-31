@@ -59,12 +59,14 @@ func _ready() -> void:
 	layer_root.name = "HUDRoot"
 	layer_root.hud = self
 	layer_root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	layer_root.set_offsets_preset(Control.PRESET_FULL_RECT)
 	layer_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(layer_root)
 
 	crosshair = CBCrosshair.new()
 	crosshair.name = "Crosshair"
 	crosshair.set_anchors_preset(Control.PRESET_FULL_RECT)
+	crosshair.set_offsets_preset(Control.PRESET_FULL_RECT)
 	crosshair.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layer_root.add_child(crosshair)
 
@@ -152,6 +154,10 @@ func _on_player_died(_attacker: String, _headshot: bool) -> void:
 
 func _on_player_respawned() -> void:
 	_respawn_seconds = -1.0
+	# it was hidden on death / match end; without this the player respawns with no
+	# crosshair and cannot aim properly
+	if crosshair != null and not _match_over:
+		crosshair.visible = true
 	if mobile_input != null:
 		mobile_input.on_player_respawned()
 	push_toast("RESPAWNED")

@@ -19,6 +19,7 @@ var _quit_button: CBAdaptiveIconButton
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_offsets_preset(Control.PRESET_FULL_RECT)
 	theme = CBTheme.theme()
 	_font = ThemeDB.fallback_font
 	Game.configure_match()

@@ -21,6 +21,7 @@ var _panel: Panel
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	theme = CBTheme.theme()
