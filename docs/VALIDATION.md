@@ -78,7 +78,7 @@ shipped JSON and re-running the runtime algorithms in Python:
 | Cross-map A* success | 6/6 spawn pairs |
 | Path length | 77.5 – 97.4 m (median 88.4 m) |
 | A* node expansions | median 3 631, max 4 606 (binary heap) |
-| Points of interest reachable | 35/37 from the unpicked spawn, 37/37 from the spawn used by the bake |
+| Points of interest reachable | 35/37 from the first spawn point, 37/37 from the spawn the bake validated |
 | Adjacency blocking test (12 214 pairs, capsule sweep against raw triangles) | 8 pairs, all sub-0.4 m ledge seams; **no wall-crossing links** |
 | Cells with < 1.75 m headroom | removed at bake time (114) |
 | Cells straddling a > 1.85 m ledge | removed at bake time (100) |
