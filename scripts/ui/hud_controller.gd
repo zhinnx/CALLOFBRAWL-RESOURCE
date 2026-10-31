@@ -39,6 +39,10 @@ var _hud_scale: float = 1.0
 
 ## Screen area taken by the touch controls (set by the gameplay scene). Readouts are
 ## laid out around it so nothing ends up underneath a thumb.
+var _fps_accum: float = 0.0
+var _fps_frames: int = 0
+var _fps_shown: int = 0
+
 var touch_exclusion: Rect2 = Rect2()
 var touch_left_block: float = 0.0
 ## Width reserved by the controls on the right edge (non-zero in left-handed mode).
@@ -352,6 +356,8 @@ func paint(canvas: Control) -> void:
 	_paint_kill_feed(ci, vp, s)
 	_paint_bottom(ci, vp, s)
 	_paint_toast(ci, vp, s)
+	if Settings.get_bool("show_fps"):
+		_paint_fps(ci, vp, s)
 	_paint_respawn(ci, vp, s)
 	if _show_scoreboard_timer > 0.0 and not _match_over:
 		_paint_scoreboard(ci, vp, s, 0.85)
@@ -489,6 +495,24 @@ func _paint_bottom(ci: CanvasItem, vp: Vector2, s: float) -> void:
 		var label := "AIM ASSIST ●" if tracking else "AIM ASSIST ON"
 		CBTheme.draw_text(ci, _font, label, Vector2(w * 0.5 - 70 * s, h - 14 * s),
 				int(11 * s), col, HORIZONTAL_ALIGNMENT_CENTER, 140 * s)
+
+
+## Optional performance readout (Settings > Graphics > Show FPS). Rounded, top-left,
+## under the personal stats so it never covers the score block.
+func _paint_fps(ci: CanvasItem, vp: Vector2, s: float) -> void:
+	_fps_accum += get_process_delta_time()
+	_fps_frames += 1
+	if _fps_accum >= 0.25:
+		_fps_shown = int(round(float(_fps_frames) / maxf(_fps_accum, 0.001)))
+		_fps_accum = 0.0
+		_fps_frames = 0
+	var text := "%d FPS" % _fps_shown
+	var fs := int(13 * s)
+	var pos := Vector2(24.0 * s, TOP_H * s + 6.0 * s)
+	CBTheme.draw_text(ci, _font, text, pos, fs, Color(0.6, 1.0, 0.6, 0.85))
+	var ms := 1000.0 / maxf(1.0, float(_fps_shown))
+	CBTheme.draw_text(ci, _font, "%.1f ms" % ms, Vector2(vp.x - 92.0 * s, pos.y), fs,
+			Color(0.6, 1.0, 0.6, 0.6), HORIZONTAL_ALIGNMENT_RIGHT, 68.0 * s)
 
 
 func _paint_toast(ci: CanvasItem, vp: Vector2, s: float) -> void:

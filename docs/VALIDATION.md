@@ -164,6 +164,7 @@ arity        -> typed-receiver call arity problems: 0
 syncheck     -> syntax hazards: 0
 autoload     -> autoload member problems: 0
 signal_leak  -> unreleased autoload connections: 0
+settings     -> dead settings: 0
 ui_sim       -> layout problems: 0 over 9 resolutions x 3 hud scales
 ```
 
@@ -178,6 +179,7 @@ python3 scripts/dev/checks/arity.py .
 python3 scripts/dev/checks/syncheck.py .
 python3 scripts/dev/checks/autoload_audit.py .
 python3 scripts/dev/checks/signal_leak.py .
+python3 scripts/dev/checks/settings_used.py .
 ```
 
 **Warning policy.** Since Godot 4.5 four warnings are errors by default regardless of
@@ -323,6 +325,26 @@ appear on the second one):
    during a scene change, which could fire the callback on a half-destroyed controller.
    The handler now bails out when it is not inside the tree or the controls are missing,
    and the connection is dropped on exit.
+
+### 1.13 Draw-dead features (settings, handedness, FPS counter)
+
+Cross-checking every `Settings.DEFAULTS` key against actual readers found two options the
+player could change with **no effect at all**:
+
+| Setting | Was | Now |
+|---|---|---|
+| `show_fps` | declared, never read, not even in the settings UI | implemented: an FPS/ms readout under the top bar, exposed as a Graphics toggle |
+| `left_handed` | declared, shown in the UI, read by nothing | implemented (§1.10) |
+
+`render_scale`, `sound_volume`, `music_volume` and `fps_limit` looked dead at first but are
+consumed inside `settings_manager.gd` itself (`apply_graphics` / `apply_all`) - the check
+was corrected rather than the code.
+
+New check #12 (`settings_used.py`) enforces this. It had to be made **falsifiable** before
+being trusted: the first version matched a bare string and therefore passed a key that was
+added on purpose as dead. It now requires a real consumption pattern
+(`get_*("key")`, `_apply_one("key")`, `key == "key"`, `RANGES.has("key")`) and is validated
+both ways - green on the tree, red on a deliberately dead key.
 
 ---
 

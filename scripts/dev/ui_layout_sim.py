@@ -162,6 +162,9 @@ def hud_bottom_check(w, h, label='', hud_scale=1.0, mirrored=False):
     covered('score bar', (0, 0, W, 92.0 * s))
     covered('top stats', (24.0 * s, 60.0 * s, 150.0 * s, 20.0 * s))
 
+    # optional FPS readout (left, under the top bar) must not sit on a control
+    covered('fps readout', (24.0 * s, 92.0 * s + 6.0 * s, 70.0 * s, 18.0 * s))
+
     # kill feed: must terminate above the touch cluster
     feed_top = 92.0 * s + 12.0 * s
     feed_bottom = feed_top + max(1.0, 5.0) * 28.0 * s

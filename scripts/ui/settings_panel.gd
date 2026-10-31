@@ -123,6 +123,7 @@ func _build() -> void:
 	_slider("Render scale", "render_scale", 0.6, 1.0, 0.05)
 	_options("FPS limit", "fps_limit", ["Unlimited", "30", "45", "60", "90", "120"])
 	_slider("HUD scale", "hud_scale", 0.8, 1.3, 0.05)
+	_toggle("Show FPS", "show_fps")
 
 	_header("AUDIO")
 	_slider("Sound volume", "sound_volume", 0.0, 1.0, 0.05)
