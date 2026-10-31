@@ -107,6 +107,8 @@ and locating the sunglasses mesh, not assumed from an axis convention.
   3 s respawn — all read from `Settings` with the documented defaults.
 * Friendly fire is rejected inside `CBHealthComponent.apply_damage()` and again in the
   bot hit resolution, so it cannot score even if a bullet somehow reaches a teammate.
+* Respawns avoid living combatants **and** every spawn point already used by another
+  respawn in the same frame (see §1.14).
 * Damage path verified by reading every call site: player hitscan → `apply_damage`,
   bot hitscan → `apply_damage`, both keyed on team.
 
@@ -345,6 +347,26 @@ being trusted: the first version matched a bare string and therefore passed a ke
 added on purpose as dead. It now requires a real consumption pattern
 (`get_*("key")`, `_apply_one("key")`, `key == "key"`, `RANGES.has("key")`) and is validated
 both ways - green on the tree, red on a deliberately dead key.
+
+### 1.14 Respawn collision on simultaneous deaths — `fixed, measured`
+
+`_living_positions()` only lists combatants that are alive, which is correct for a single
+respawn - but a whole team dying to one grenade-style burst expires on the **same frame**,
+and at that moment nobody in the batch is alive yet, so every one of them was placed
+without seeing the others. The four named spawns are 2.03-10.31 m apart, so with five
+combatants the collision is not theoretical.
+
+Simulated over 300 batches per case using the real spawn coordinates:
+
+| Respawns expiring together | Bodies closer than 1.6 m, before | After |
+|---|---|---|
+| 2 | 46 / 300 (15 %) | **0 / 300** |
+| 3 | 130 / 300 (43 %) | **0 / 300** |
+| 5 | 286 / 300 (95 %) | **0 / 300** |
+
+`_respawn()` now returns the point it used and `_update_respawns()` passes the ones already
+claimed in that batch down to `MapLoader.pick_spawn()`, which skips a candidate within 1.6 m
+of a claimed point and falls back to the least crowded spawn only when every point is taken.
 
 ---
 

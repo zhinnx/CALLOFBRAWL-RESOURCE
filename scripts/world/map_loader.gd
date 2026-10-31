@@ -192,12 +192,15 @@ func _snap_to_floor(point: Vector3, height_above: float) -> Vector3:
 
 
 ## Random spawn point for a team that is clear of other combatants.
-func pick_spawn(team: int, avoid: Array[Node3D]) -> Vector3:
+## Picks a valid spawn for `team`. `avoid` holds live combatants; `claimed` holds spawn
+## points already handed out to other combatants respawning on the same frame.
+func pick_spawn(team: int, avoid: Array[Node3D], claimed: Array[Vector3] = []) -> Vector3:
 	var count := CBNavMeshData.spawn_points(team).size()
 	var offset := randi() % maxi(1, count)
-	var space := get_world_3d().direct_space_state
 	for i in count:
 		var pos := resolve_spawn(team, offset + i)
+		if _is_claimed(pos, claimed):
+			continue
 		if _spawn_is_clear(pos, avoid):
 			return pos
 	# Every candidate was occupied: fall back to the least crowded one so the respawn
@@ -206,6 +209,8 @@ func pick_spawn(team: int, avoid: Array[Node3D]) -> Vector3:
 	var best_dist := -1.0
 	for i in count:
 		var pos := resolve_spawn(team, offset + i)
+		if _is_claimed(pos, claimed):
+			continue
 		var nearest := 999.0
 		for other in avoid:
 			if other == null or not is_instance_valid(other):
@@ -215,6 +220,14 @@ func pick_spawn(team: int, avoid: Array[Node3D]) -> Vector3:
 			best_dist = nearest
 			best = pos
 	return best
+
+
+## True when `pos` is the (or next to a) point another combatant took in this batch.
+func _is_claimed(pos: Vector3, claimed: Array[Vector3]) -> bool:
+	for taken in claimed:
+		if taken.distance_squared_to(pos) < 1.6 * 1.6:
+			return true
+	return false
 
 
 ## A spawn is valid when no other combatant is within 1.6 m and the space a 1.75 m

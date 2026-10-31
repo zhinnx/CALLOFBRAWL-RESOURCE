@@ -119,24 +119,33 @@ func _update_respawns(delta: float) -> void:
 	if _respawns.is_empty():
 		return
 	var still: Array[Dictionary] = []
+	# Combatants whose timers expire on the same frame are respawned in one batch. Each
+	# one must avoid the spots taken by the ones already placed in this batch, otherwise
+	# two bodies dropped simultaneously can land on the same spawn point.
+	var claimed: Array[Vector3] = []
 	for entry in _respawns:
 		entry["time"] = float(entry.get("time", 0.0)) - delta
 		var who: String = str(entry.get("id", ""))
 		var remaining := float(entry.get("time", 0.0))
 		if remaining <= 0.0:
-			_respawn(entry)
+			var placed := _respawn(entry, claimed)
+			if placed != Vector3.INF:
+				claimed.append(placed)
 		else:
 			still.append(entry)
 			respawn_countdown.emit(who, remaining)
 	_respawns = still
 
 
-func _respawn(entry: Dictionary) -> void:
+## Places one respawned combatant. `claimed` holds the spawn points already used by
+## earlier respawns in the same frame; returns the chosen position, or Vector3.INF when
+## nothing was spawned (the node died between being queued and this call).
+func _respawn(entry: Dictionary, claimed: Array[Vector3] = []) -> Vector3:
 	var node: Node = entry.get("node")
 	if node == null or not is_instance_valid(node):
-		return
+		return Vector3.INF
 	var team: int = int(entry.get("team", CBTeam.ALPHA))
-	var pos := map_loader.pick_spawn(team, _living_positions())
+	var pos := map_loader.pick_spawn(team, _living_positions(), claimed)
 	var yaw := _yaw_towards_middle(pos)
 	if node is CBBotController:
 		(node as CBBotController).on_respawn(pos, yaw)
@@ -147,6 +156,7 @@ func _respawn(entry: Dictionary) -> void:
 		Audio.play_ui("respawn", -8.0)
 		p.set_aiming(false)
 		p.weapon.set_trigger(false)
+	return pos
 
 
 func _living_positions() -> Array[Node3D]:
