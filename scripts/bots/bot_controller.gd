@@ -212,6 +212,12 @@ func _reset_state() -> void:
 	_burst_shots = 0
 	_search_timer = 0.0
 	_stuck_timer = 0.0
+	# Phase offsets, not zeroes. Nine bots all starting with `_nav_timer = 0` replanned
+	# their A* path on the *same* physics frame, which is the one place this game can
+	# drop a frame on a low-end phone (one full-map path is ~3 000 expansions). Random
+	# starts spread the cost over the following intervals instead.
+	_nav_timer = randf() * REPATH_INTERVAL
+	_perception_timer = randf() * PERCEPTION_INTERVAL
 	_path = PackedVector3Array()
 	path_next_index = 0
 	_has_goal = false
@@ -291,7 +297,7 @@ func _find_best_visible_enemy() -> Node3D:
 		if node == self:
 			continue
 		var n3 := node as Node3D
-		if n3 == null or not n3.visible and not n3.get("is_alive"):
+		if n3 == null or not n3.is_visible_in_tree():
 			continue
 		var hc: CBHealthComponent = n3.get("health_component") as CBHealthComponent
 		if hc == null or not hc.is_alive():
@@ -344,7 +350,9 @@ func _move_towards(target_pos: Vector3, speed: float, delta: float) -> void:
 	var drifted := _has_goal and _goal.distance_to(target_pos) > REPATH_DISTANCE
 	var exhausted := _path.is_empty() or path_next_index >= _path.size()
 	if _nav_timer <= 0.0 and (exhausted or drifted):
-		_nav_timer = REPATH_INTERVAL
+		# a small random jitter keeps the bots from re-synchronising over time, which
+		# they would otherwise do because every timer uses the same constant
+		_nav_timer = REPATH_INTERVAL * randf_range(0.85, 1.25)
 		_plan_path(target_pos)
 
 	if _path.is_empty():
@@ -597,20 +605,51 @@ func fire_bot_hitscan(enemy: Node3D, muzzle: Vector3, dir: Vector3, will_hit: bo
 	q.collide_with_bodies = true
 	var hit := space.intersect_ray(q)
 	var point := end
+	var normal: Vector3 = hit.get("normal", Vector3.UP) if not hit.is_empty() else Vector3.UP
 	var victim: Node = null
 	if not hit.is_empty():
 		point = hit.get("position", end)
 		var collider: Object = hit.get("collider")
 		if collider is Node:
-			var combatant := _combatant_of(collider as Node)
-			if combatant != null and combatant != self:
-				victim = combatant
+			victim = _combatant_of(collider as Node)
+			if victim == self:
+				victim = null
+	# A teammate stepped into the line of fire. Real bullets do not stop at a friend's
+	# body when the shot was aimed at an enemy behind it, and a bot must never be
+	# blinded by its own squad, so keep casting past every body that is not a legal
+	# target until an enemy or the world takes the hit.
+	var skip: Array[RID] = []
+	var guard := 0
+	while victim != null and _is_teammate(victim) and guard < 4:
+		guard += 1
+		# exclude is *cumulative*: overwriting it would re-admit the previous teammate
+		for rid: RID in _body_rids_of(victim):
+			if not skip.has(rid):
+				skip.append(rid)
+		q.exclude = skip
+		var again := space.intersect_ray(q)
+		if again.is_empty():
+			victim = null
+			point = end
+			normal = Vector3.UP
+			break
+		point = again.get("position", end)
+		normal = again.get("normal", Vector3.UP)
+		var next_node := again.get("collider") as Node
+		if next_node == null:
+			victim = null
+			break
+		var next_combatant := _combatant_of(next_node)
+		if next_combatant == null or next_combatant == self:
+			victim = null
+			break
+		victim = next_combatant
 	Fx.spawn_tracer(muzzle, point, 0.04)
 	Audio.play_3d("rifle", muzzle, -3.0, 0.1, 70.0)
 	if victim == null:
 		if not hit.is_empty():
-			Fx.spawn_impact(point, hit.get("normal", Vector3.UP), 0.9)
-			Fx.spawn_spark_burst(point, hit.get("normal", Vector3.UP))
+			Fx.spawn_impact(point, normal, 0.9)
+			Fx.spawn_spark_burst(point, normal)
 		return
 	# Never damage teammates.
 	var hc: CBHealthComponent = victim.get("health_component") as CBHealthComponent
@@ -630,6 +669,22 @@ func fire_bot_hitscan(enemy: Node3D, muzzle: Vector3, dir: Vector3, will_hit: bo
 		Fx.spawn_blood(point, dir * -1.0)
 		Audio.play_3d("impact_flesh", point, -8.0, 0.1, 30.0)
 	Game.report_damage_credit(combatant_id, str(victim.get("combatant_id")), headshot)
+
+
+func _is_teammate(node: Node) -> bool:
+	var hc: CBHealthComponent = node.get("health_component") as CBHealthComponent
+	return hc != null and CBTeam.is_friendly(hc.team, team)
+
+
+## Collision-object RIDs that belong to a combatant, for `PhysicsRayQueryParameters3D.exclude`.
+func _body_rids_of(combatant: Node) -> Array[RID]:
+	var out: Array[RID] = []
+	if combatant is CollisionObject3D:
+		out.append((combatant as CollisionObject3D).get_rid())
+	for child in combatant.get_children():
+		if child is CollisionObject3D:
+			out.append((child as CollisionObject3D).get_rid())
+	return out
 
 
 func _combatant_of(hitbox: Node) -> Node:
