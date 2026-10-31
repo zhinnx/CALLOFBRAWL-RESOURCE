@@ -82,6 +82,7 @@ var _stuck_timer: float = 0.0
 var _last_position: Vector3 = Vector3.ZERO
 var _shots_fired: int = 0
 var _cover_point: Vector3 = Vector3.ZERO
+var _footstep_accum: float = 0.0
 
 ## Difficulty tables, indexed by `bot_difficulty` (0 easy, 1 normal, 2 hard).
 const ACCURACY_BY_TIER: Array[float] = [0.42, 0.62, 0.78]
@@ -266,6 +267,7 @@ func _physics_process(delta: float) -> void:
 
 	move_and_slide()
 	_check_stuck(delta)
+	_update_footsteps(delta)
 	if visual:
 		var speed := Vector2(velocity.x, velocity.z).length()
 		visual.animate(delta, speed, is_on_floor(), velocity.y)
@@ -387,6 +389,24 @@ func _plan_path(target_pos: Vector3) -> void:
 		# is close enough to be reached directly
 		if _path[_path.size() - 1].distance_to(target_pos) < 1.5:
 			_path.append(target_pos)
+
+
+## Footsteps for bots too: hearing an enemy approach is a core tactical cue in a
+## tactical FPS, and without it nine bots move in perfect silence. Distance-attenuated
+## and skipped entirely when far from the local player, so it costs nothing.
+func _update_footsteps(delta: float) -> void:
+	var speed := Vector2(velocity.x, velocity.z).length()
+	if speed < 1.6 or not is_on_floor():
+		_footstep_accum = 0.0
+		return
+	var listener := Game.local_player as Node3D
+	if listener != null and listener.global_position.distance_squared_to(global_position) > 26.0 * 26.0:
+		_footstep_accum = 0.0
+		return
+	_footstep_accum += delta * speed * 1.35
+	if _footstep_accum > 1.6:
+		_footstep_accum = 0.0
+		Audio.play_3d("footstep", global_position, -18.0, 0.22, 20.0)
 
 
 func _steer_towards(point: Vector3, speed: float, delta: float) -> void:

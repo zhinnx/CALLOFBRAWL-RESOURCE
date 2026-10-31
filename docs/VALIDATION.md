@@ -162,6 +162,7 @@ deep_audit   -> typed-var member issues: 0
 stringcalls  -> string-call arity problems: 0
 arity        -> typed-receiver call arity problems: 0
 syncheck     -> syntax hazards: 0
+autoload     -> autoload member problems: 0
 ui_sim       -> layout problems: 0 over 9 resolutions x 3 hud scales
 ```
 
@@ -174,6 +175,7 @@ python3 scripts/dev/ui_layout_sim.py      # mobile layout sweep
 python3 scripts/dev/checks/stringcalls.py .
 python3 scripts/dev/checks/arity.py .
 python3 scripts/dev/checks/syncheck.py .
+python3 scripts/dev/checks/autoload_audit.py .
 ```
 
 **Warning policy.** Since Godot 4.5 four warnings are errors by default regardless of
@@ -260,6 +262,39 @@ Additional mobile-only defect found and fixed in this pass: when the app loses f
 "finger released" event, so the fire button stayed pressed and the character kept walking.
 `_notification()` now clears every claimed touch on
 `NOTIFICATION_APPLICATION_(FOCUS_OUT|PAUSED)` and `NOTIFICATION_WM_WINDOW_FOCUS_OUT`.
+
+### 1.11 Bot navigation and combat — measured against the baked data
+
+The navmesh JSON is the one part of the AI that can be verified without the engine, so it
+was checked as data rather than assumed:
+
+| Measurement | Result |
+|---|---|
+| Polygon indices in range | max index 7643 < 7644 vertices |
+| Degenerate polygons | **0** of 6657 |
+| Invalid adjacency links | **0** of 23 999 |
+| Connected components | 2 — main surface **6348** polys, one inaccessible island of 309 |
+| All 12 team spawns resolve into | the **main** component (distance ≤ 0.05 m) |
+| All 37 tactical points resolve into | the **main** component (distance ≤ 0.00 m) |
+| A\* across the map (spawn A → spawn B) | 132 waypoints, **2964 expansions**, 12 ms in CPython |
+| A\* mean over 111 sampled routes | **1067 expansions** (5.4 ms), worst sample 4384 |
+
+The island is unreachable, so the pathfinder can never strand a bot on it — but the cost
+figure exposed a real defect: every bot started with `_nav_timer = 0`, so all nine
+replanned on the **same** physics frame (≈ 50 ms of A* in one tick). Timers now start at a
+random phase and each replan adds jitter. This is the kind of stutter that reads as "the game
+is laggy" on a mid-range phone without ever showing an error.
+
+Also fixed in the AI pass:
+
+* **Teammates no longer absorb bot bullets.** A friendly body in the line of fire used to
+  consume the ray, so an enemy behind a teammate could never be hit. The cast now skips
+  every non-hostile body (`exclude` is accumulated, not overwritten) and the impact normal
+  comes from the ray that actually ended the trace.
+* `not n3.visible and not n3.get("is_alive")` mixed a property with a method call; replaced
+  with `is_visible_in_tree()`. Friendly fire is still blocked in three separate places.
+* Bots now emit **footsteps** (distance-culled and only while moving on the floor) — hearing
+  an approach is a core tactical cue and nine silent bots felt wrong.
 
 ---
 
