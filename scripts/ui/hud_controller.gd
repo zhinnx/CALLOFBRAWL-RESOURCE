@@ -211,6 +211,10 @@ func _on_match_finished(result: Dictionary) -> void:
 	if mobile_input != null:
 		mobile_input.set_enabled(false)
 	crosshair.visible = false
+	# Freeze the world behind the results screen: without this the bots keep running,
+	# shooting and even scoring while the player reads the final table, and the score in
+	# the panel no longer matches what is happening on screen.
+	get_tree().paused = true
 	_open_results()
 
 
