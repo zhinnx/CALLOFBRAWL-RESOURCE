@@ -129,7 +129,7 @@ func _process(delta: float) -> void:
 	_t += delta
 	if camera == null:
 		return
-	var ang = _t * 0.12
+	var ang := _t * 0.12
 	var pos := _focus + Vector3(sin(ang) * _orbit_radius, 1.9 + sin(_t * 0.5) * 0.25, cos(ang) * _orbit_radius)
 	camera.position = camera.position.lerp(pos, minf(1.0, delta * 1.5))
 	camera.look_at(_focus + Vector3(0, 1.05, 0), Vector3.UP)

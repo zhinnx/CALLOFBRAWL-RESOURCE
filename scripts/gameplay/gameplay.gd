@@ -130,6 +130,11 @@ func _build_ui() -> void:
 
 	mobile_input.hud = hud
 
+	# --- tell the HUD which part of the screen the thumbs own, so its readouts are
+	#     laid out around the controls instead of underneath them
+	mobile_input.layout_changed.connect(_sync_hud_exclusion)
+	_sync_hud_exclusion()
+
 	# --- settings overlay (used from the pause menu)
 	settings_panel = CBSettingsPanel.new()
 	settings_panel.name = "SettingsPanel"
@@ -154,6 +159,34 @@ func _on_pause_toggled(paused: bool) -> void:
 		mobile_input.set_enabled(false)
 	elif not paused and mobile_input != null:
 		mobile_input.set_enabled(true)
+
+
+## Keeps the HUD's "do not draw here" areas in sync with the live control layout
+## (also after an orientation change, which re-runs the control layout).
+func _sync_hud_exclusion() -> void:
+	if hud == null or mobile_input == null:
+		return
+	var stick := mobile_input.stick_rect()
+	hud.touch_left_block = stick.size.x + stick.position.x
+	var strip := mobile_input.action_strip_rect()
+	var fire := mobile_input.fire_button
+	var fire_rect := Rect2(fire.position, fire.size) if fire != null else Rect2()
+	# merge by hand: Rect2.merge() with an empty rect can pull the result towards the
+	# origin, which would tell the HUD that the whole screen is taken by the controls
+	if not fire_rect.has_area():
+		hud.touch_exclusion = strip
+	elif not strip.has_area():
+		hud.touch_exclusion = fire_rect
+	else:
+		var left := minf(strip.position.x, fire_rect.position.x)
+		var top := minf(strip.position.y, fire_rect.position.y)
+		var strip_right := strip.position.x + strip.size.x
+		var fire_right := fire_rect.position.x + fire_rect.size.x
+		var strip_bottom := strip.position.y + strip.size.y
+		var fire_bottom := fire_rect.position.y + fire_rect.size.y
+		var right := maxf(strip_right, fire_right)
+		var bottom := maxf(strip_bottom, fire_bottom)
+		hud.touch_exclusion = Rect2(left, top, right - left, bottom - top)
 
 
 func _on_settings_from_pause() -> void:
@@ -183,7 +216,7 @@ func _on_menu() -> void:
 func _process(_delta: float) -> void:
 	# apply the aim-assist rotation nudge (never snaps, capped per frame)
 	if aim_assist != null and player != null and player.is_alive and not get_tree().paused:
-		var assist = aim_assist.rotation_assist()
+		var assist := aim_assist.rotation_assist()
 		if assist != Vector2.ZERO:
 			player.add_look(assist.x, assist.y)
 		if hud != null and hud.crosshair != null:

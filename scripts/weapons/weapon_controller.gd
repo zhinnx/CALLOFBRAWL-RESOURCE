@@ -137,14 +137,14 @@ func _process(delta: float) -> void:
 			_try_fire()
 	# recoil recovery
 	if _recoil_accum != Vector2.ZERO:
-		var rec = data.recoil_recovery * delta
+		var rec := data.recoil_recovery * delta
 		_recoil_accum.x = move_toward(_recoil_accum.x, 0.0, rec)
 		_recoil_accum.y = move_toward(_recoil_accum.y, 0.0, rec)
 
 
 func _update_reload(delta: float) -> void:
 	_reload_timer -= delta
-	var elapsed = _reload_duration - _reload_timer
+	var elapsed := _reload_duration - _reload_timer
 	if _reload_stage == 0 and elapsed > _reload_duration * 0.55:
 		_reload_stage = 1
 		Audio.play_3d("reload_in", _audio_position(), -4.0, 0.05, 30.0)
@@ -207,7 +207,7 @@ func _do_shot() -> void:
 		origin = camera.global_position
 		direction = -camera.global_transform.basis.z
 	else:
-		# bots: fire from the muzzle the model factory measured, never from a guess
+		# bots fire from the muzzle the model factory measured
 		if muzzle != null:
 			origin = muzzle.global_position
 			direction = -muzzle.global_transform.basis.z
@@ -219,11 +219,11 @@ func _do_shot() -> void:
 	if spread_deg > 0.0:
 		var yaw := deg_to_rad(randf_range(-spread_deg, spread_deg))
 		var pitch := deg_to_rad(randf_range(-spread_deg, spread_deg))
-		var basis = Basis.looking_at(direction, Vector3.UP if absf(direction.y) < 0.99 else Vector3.RIGHT)
+		var basis := Basis.looking_at(direction, Vector3.UP if absf(direction.y) < 0.99 else Vector3.RIGHT)
 		direction = (basis * Vector3(sin(yaw) * cos(pitch), sin(pitch), -cos(yaw) * cos(pitch))).normalized()
 
 	# apply recoil (player only rotates the camera; bots keep aiming at the target)
-	var recoil: Vector2 = Vector2.ZERO
+	var recoil := Vector2.ZERO
 	if is_player:
 		# Camera pitch is positive = looking up (camera_pivot.rotation.x), so a positive
 		# vertical value kicks the view upward the way an AK-47 climbs.
@@ -248,7 +248,7 @@ func _do_shot() -> void:
 	query.collide_with_areas = true
 	query.collide_with_bodies = true
 	var space := _space()
-	var result = space.intersect_ray(query) if space != null else {}
+	var result := space.intersect_ray(query) if space != null else {}
 	var tracer_end: Vector3 = origin + direction * data.max_range
 	if not result.is_empty():
 		hit_point = result.get("position", hit_point)
@@ -265,7 +265,7 @@ func _handle_hit(result: Dictionary, origin: Vector3) -> void:
 	if collider is Node:
 		var node := collider as Node
 		if node.is_in_group(Game.GROUP_HITBOX):
-			var headshot = node.is_in_group(Game.GROUP_HEAD)
+			var headshot := node.is_in_group(Game.GROUP_HEAD)
 			var combatant := _find_combatant(node)
 			if combatant != null:
 				_apply_combatant_damage(combatant, point, normal, headshot, origin)
@@ -294,18 +294,18 @@ func _apply_combatant_damage(combatant: Node, point: Vector3, normal: Vector3, h
 		# Friendly fire is disabled: show a "blocked" impact, no damage.
 		Fx.spawn_impact(point, normal, 0.7)
 		return
-	var dist: float = origin.distance_to(point)
+	var dist := origin.distance_to(point)
 	# Nominal damage: 100 head, 25 torso, 18 limb. Beyond `effective_range` (45 m) the
 	# value scales down to `range_falloff` (55 %) at `max_range`, so a cross-map body
 	# shot deals ~14 while a close-range headshot always kills.
 	var base := data.damage_head if headshot else data.damage_body
 	if not headshot and not _is_torso_point(combatant, point):
 		base = data.damage_limb
-	var dmg = base * _falloff(dist)
+	var dmg := base * _falloff(dist)
 	if not is_player:
 		dmg *= data.bot_damage_scale
 	var victim_id: String = combatant.get("combatant_id")
-	var dealt = health.apply_damage(dmg, owner_id, owner_team, headshot)
+	var dealt := health.apply_damage(dmg, owner_id, owner_team, headshot)
 	if dealt <= 0.0:
 		return
 	Fx.spawn_blood(point, normal if normal != Vector3.ZERO else Vector3.UP)
@@ -321,7 +321,7 @@ func _is_torso_point(combatant: Node, point: Vector3) -> bool:
 	var node3d := combatant as Node3D
 	if node3d == null:
 		return true
-	var local_y = point.y - node3d.global_position.y
+	var local_y := point.y - node3d.global_position.y
 	return local_y > 0.85
 
 
@@ -339,7 +339,7 @@ func current_spread() -> float:
 	if is_player:
 		if aiming:
 			return data.spread_ads
-		var moving: bool = false
+		var moving := false
 		if holder is CharacterBody3D:
 			var body := holder as CharacterBody3D
 			moving = Vector2(body.velocity.x, body.velocity.z).length() > 1.5
@@ -383,9 +383,8 @@ func _audio_position() -> Vector3:
 	return _holder_position()
 
 
-## This controller is a plain Node (it is not part of the 3D scene graph), so any world
-## position has to come from the node that owns it. The fallback paths used when no
-## muzzle node was supplied must never reach for `global_position` on themselves.
+## This controller is a plain Node (it is not part of the 3D scene graph), so world
+## positions must come from the node that owns it, never from `self`.
 func _holder_position() -> Vector3:
 	if holder != null:
 		return holder.global_position

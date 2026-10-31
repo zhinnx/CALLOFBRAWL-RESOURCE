@@ -36,6 +36,11 @@ var _paused: bool = false
 var _match_over: bool = false
 var _result: Dictionary = {}
 var _hud_scale: float = 1.0
+
+## Screen area taken by the touch controls (set by the gameplay scene). Readouts are
+## laid out around it so nothing ends up underneath a thumb.
+var touch_exclusion: Rect2 = Rect2()
+var touch_left_block: float = 0.0
 var _font: Font
 var _show_scoreboard_timer: float = 0.0
 var _zoom_hint_timer: float = 0.0
@@ -123,7 +128,7 @@ func _bearing_to(world_pos: Vector3) -> float:
 		fwd = Vector3(0, 0, -1)
 	fwd = fwd.normalized()
 	var right := Vector3(-fwd.z, 0.0, fwd.x)
-	var to = world_pos - player.global_position
+	var to := world_pos - player.global_position
 	to.y = 0.0
 	return atan2(to.dot(right), to.dot(fwd))
 
@@ -288,7 +293,7 @@ func toggle_scoreboard(value: bool) -> void:
 func _input(event: InputEvent) -> void:
 	if not (event is InputEventKey) or not event.is_pressed() or event.is_echo():
 		return
-	var key = (event as InputEventKey).keycode
+	var key := (event as InputEventKey).keycode
 	if key == KEY_ESCAPE or key == KEY_P:
 		if close_settings_overlay():
 			get_viewport().set_input_as_handled()
@@ -320,12 +325,10 @@ class HUDCanvas extends Control:
 
 
 ## Paints top bar, feed, bottom bar, respawn overlay, scoreboard.
-## `canvas` is always a Control (HUDCanvas) so the viewport rect is available; the
-## painter only ever uses the CanvasItem drawing API.
 func paint(canvas: Control) -> void:
 	var ci: CanvasItem = canvas
-	var vp: Vector2 = canvas.size
-	var s: float = _hud_scale * maxf(0.75, vp.y / 720.0)
+	var vp := canvas.size
+	var s := _hud_scale * maxf(0.75, vp.y / 720.0)
 	_paint_top(ci, vp, s)
 	_paint_kill_feed(ci, vp, s)
 	_paint_bottom(ci, vp, s)
@@ -343,8 +346,8 @@ func _paint_top(ci: CanvasItem, vp: Vector2, s: float) -> void:
 	# score block
 	var alpha_score := Game.alpha_score
 	var bravo_score := Game.bravo_score
-	var fs: int = int(40 * s)
-	var score_w = 210.0 * s
+	var fs := int(40 * s)
+	var score_w := 210.0 * s
 	var centre := Vector2(w * 0.5, 26.0 * s)
 	CBTheme.draw_text(ci, _font, str(alpha_score), centre + Vector2(-score_w * 0.5, 0), fs,
 			CBTheme.ALPHA_BLUE, HORIZONTAL_ALIGNMENT_RIGHT, score_w * 0.5)
@@ -356,9 +359,8 @@ func _paint_top(ci: CanvasItem, vp: Vector2, s: float) -> void:
 	var t := 0.0
 	if match_manager != null:
 		t = match_manager.time_left
-	var total := int(t)
-	var mm := total / 60
-	var ss := total % 60
+	var mm := int(t) / 60
+	var ss := int(t) % 60
 	var timer_text := "%02d:%02d" % [mm, ss]
 	var urgent := t <= 30.0
 	CBTheme.draw_text(ci, _font, timer_text, centre + Vector2(0, 34.0 * s), int(26 * s),
@@ -373,29 +375,29 @@ func _paint_top(ci: CanvasItem, vp: Vector2, s: float) -> void:
 		CBTheme.draw_text(ci, _font, "%d alive" % match_manager.bravo_alive(), Vector2(w - 120 * s, 52 * s), int(13 * s), CBTheme.TEXT_DIM)
 	# personal stats
 	if player != null:
-		var stat = Game.get_stat(Game.local_combatant_id)
-		var k: int = int(stat.get("kills", 0))
-		var d: int = int(stat.get("deaths", 0))
+		var stat := Game.get_stat(Game.local_combatant_id)
+		var k := int(stat.get("kills", 0))
+		var d := int(stat.get("deaths", 0))
 		CBTheme.draw_text(ci, _font, "K %d   D %d" % [k, d], Vector2(24 * s, 76 * s), int(15 * s), CBTheme.TEXT)
 
 
 func _paint_kill_feed(ci: CanvasItem, vp: Vector2, s: float) -> void:
-	var y = TOP_H * s + 12.0 * s
-	var x = vp.x - 18.0 * s
+	var y := TOP_H * s + 12.0 * s
+	var x := vp.x - 18.0 * s
 	for i in range(_kill_feed.size() - 1, -1, -1):
-		var e = _kill_feed[i]
-		var life = _kill_feed_life[i] if i < _kill_feed_life.size() else 0.0
+		var e := _kill_feed[i]
+		var life := _kill_feed_life[i] if i < _kill_feed_life.size() else 0.0
 		var a := clampf(life, 0.0, 1.0)
 		if a <= 0.0:
 			continue
 		var victim := str(e.get("victim", "?"))
 		var attacker := str(e.get("attacker", "?"))
-		var vteam: int = int(e.get("victim_team", 0))
-		var ateam: int = int(e.get("attacker_team", 0))
+		var vteam := int(e.get("victim_team", 0))
+		var ateam := int(e.get("attacker_team", 0))
 		var hs := " ◎" if bool(e.get("headshot", false)) else ""
 		var text := "%s%s  ⟶  %s" % [attacker, hs, victim]
-		var fs: int = int(15 * s)
-		var width = _font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+		var fs := int(15 * s)
+		var width := _font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 		var box := Rect2(x - width - 14 * s, y, width + 14 * s, 24 * s)
 		ci.draw_rect(box, Color(0.02, 0.03, 0.04, 0.55 * a))
 		ci.draw_rect(Rect2(box.position, Vector2(3 * s, box.size.y)),
@@ -403,6 +405,10 @@ func _paint_kill_feed(ci: CanvasItem, vp: Vector2, s: float) -> void:
 		CBTheme.draw_text(ci, _font, text, Vector2(box.position.x + 8 * s, y + 17 * s), fs,
 				Color(1, 1, 1, a))
 		y += 28.0 * s
+		# stop the feed above the touch cluster so a growing feed can never run
+		# underneath the fire button / action strip on a short screen
+		if touch_exclusion.size.y > 0.0 and y + 24 * s > touch_exclusion.position.y - 8.0 * s:
+			break
 
 
 func _paint_bottom(ci: CanvasItem, vp: Vector2, s: float) -> void:
@@ -412,28 +418,37 @@ func _paint_bottom(ci: CanvasItem, vp: Vector2, s: float) -> void:
 	var h := vp.y
 	var bar := Rect2(0, h - BOTTOM_H * s, w, BOTTOM_H * s)
 	ci.draw_rect(bar, Color(0.03, 0.04, 0.05, 0.42))
-	# health bar (left)
-	var hp = player.health_component.health_fraction()
-	var hx = 28.0 * s
-	var hy = h - 52.0 * s
-	var hw = 240.0 * s
-	var hh = 16.0 * s
+	# --- readouts share the bottom band with the thumbs, so both of them are
+	#     positioned relative to the control cluster instead of the screen edges.
+	#     `_right_limit` is the left edge of the fire/action cluster: everything to
+	#     the right of it belongs to the controls.
+	var right_limit := w - 30.0 * s
+	if touch_exclusion.size.x > 0.0 and touch_exclusion.position.x > w * 0.45:
+		right_limit = touch_exclusion.position.x - 16.0 * s
+
+	# health bar (bottom left, after the joystick block)
+	var hp := player.health_component.health_fraction()
+	var hx := maxf(28.0 * s, touch_left_block + 16.0 * s)
+	var hw := clampf(minf(minf(w * 0.30, 240.0 * s), right_limit - 20.0 * s - hx), 110.0 * s, 240.0 * s)
+	var hy := h - 52.0 * s
+	var hh := 16.0 * s
 	ci.draw_rect(Rect2(hx, hy, hw, hh), Color(0, 0, 0, 0.5))
 	var hcol := Color(0.35, 0.85, 0.45) if hp > 0.5 else (Color(0.95, 0.75, 0.25) if hp > 0.25 else Color(0.95, 0.3, 0.25))
 	ci.draw_rect(Rect2(hx, hy, hw * hp, hh), hcol)
 	CBTheme.draw_text(ci, _font, "HEALTH", Vector2(hx, hy - 8 * s), int(12 * s), CBTheme.TEXT_DIM)
 	CBTheme.draw_text(ci, _font, str(int(ceil(player.health_component.current_health()))),
 			Vector2(hx + hw - 60 * s, hy - 4 * s), int(20 * s), CBTheme.TEXT)
-	# ammo (right)
+
+	# ammo counter (right, just left of the fire button so the thumb never hides it)
 	var weapon := player.weapon
 	if weapon != null:
-		var ax = w - 30.0 * s
+		var ax := right_limit
 		var mag := weapon.magazine
 		var reserve := weapon.reserve
 		var mag_text := str(mag)
-		var fs: int = int(42 * s)
-		var mag_w = _font.get_string_size(mag_text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
-		CBTheme.draw_text(ci, _font, mag_text, Vector2(ax - mag_w - 74 * s, h - 34 * s), fs,
+		var fs := int(42 * s)
+		var mag_w := _font.get_string_size(mag_text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+		CBTheme.draw_text(ci, _font, mag_text, Vector2(ax - 74 * s - mag_w, h - 34 * s), fs,
 				Color(1, 0.35, 0.3) if mag <= 5 else CBTheme.TEXT)
 		CBTheme.draw_text(ci, _font, "/ %d" % reserve, Vector2(ax - 70 * s, h - 34 * s), int(20 * s), CBTheme.TEXT_DIM)
 		CBTheme.draw_text(ci, _font, weapon.data.display_name if weapon.data else "AK-47",
@@ -455,9 +470,11 @@ func _paint_toast(ci: CanvasItem, vp: Vector2, s: float) -> void:
 	if _toast_timer <= 0.0:
 		return
 	var a := clampf(_toast_timer / 0.5, 0.0, 1.0)
-	var fs: int = int(20 * s)
-	var sz = _font.get_string_size(_toast, HORIZONTAL_ALIGNMENT_LEFT, -1, fs)
-	var pos := Vector2(vp.x * 0.5 - sz.x * 0.5, vp.y * 0.30)
+	var fs := int(20 * s)
+	var sz := _font.get_string_size(_toast, HORIZONTAL_ALIGNMENT_LEFT, -1, fs)
+	# clamp to the viewport: a long notification must not start left of x=0 or run
+	# past the right edge on a narrow portrait-ish viewport
+	var pos := Vector2(clampf(vp.x * 0.5 - sz.x * 0.5, 18.0 * s, maxf(18.0 * s, vp.x - sz.x - 18.0 * s)), vp.y * 0.30)
 	var box := Rect2(pos.x - 18 * s, pos.y - sz.y + 4 * s, sz.x + 36 * s, sz.y + 14 * s)
 	ci.draw_rect(box, Color(0.03, 0.04, 0.05, 0.62 * a))
 	ci.draw_rect(Rect2(box.position, Vector2(box.size.x, 2 * s)),
@@ -479,11 +496,21 @@ func _paint_respawn(ci: CanvasItem, vp: Vector2, s: float) -> void:
 
 
 func _paint_scoreboard(ci: CanvasItem, vp: Vector2, s: float, alpha: float) -> void:
-	var rows = Game.scoreboard_rows()
-	var w = 620.0 * s
-	var row_h = 30.0 * s
-	var h = 96.0 * s + row_h * maxf(10.0, float(rows.size()))
-	var box := Rect2((vp.x - w) * 0.5, (vp.y - h) * 0.5, w, h)
+	var rows := Game.scoreboard_rows()
+	# The board is centred, but it must not be drawn underneath the thumbs. Fit it
+	# into the free band between the stick (left) and the control cluster (right);
+	# when that band is narrow the board shrinks instead of overlapping a control.
+	var band_left := touch_left_block + 10.0 * s
+	var band_right := vp.x - 26.0 * s
+	if touch_exclusion.size.x > 0.0 and touch_exclusion.position.x > vp.x * 0.45:
+		band_right = touch_exclusion.position.x - 10.0 * s
+	var w := clampf(band_right - band_left, 220.0 * s, minf(620.0 * s, vp.x * 0.86))
+	var board_x := clampf(vp.x * 0.5 - w * 0.5, band_left, maxf(band_left, band_right - w))
+	# 10 combatants do not fit on a 720-unit-tall phone if the row height is fixed,
+	# so the rows are compressed to whatever vertical space the viewport actually has
+	var h := minf(vp.y * 0.88, 96.0 * s + 30.0 * s * maxf(10.0, float(rows.size())))
+	var row_h := clampf((h - 96.0 * s) / maxf(10.0, float(rows.size())), 14.0 * s, 30.0 * s)
+	var box := Rect2(board_x, (vp.y - h) * 0.5, w, h)
 	ci.draw_rect(box, Color(0.03, 0.04, 0.05, 0.90 * alpha))
 	ci.draw_rect(Rect2(box.position, Vector2(box.size.x, 3 * s)), CBTheme.ACCENT)
 	CBTheme.draw_text(ci, _font, "SCOREBOARD", box.position + Vector2(20 * s, 32 * s), int(22 * s),
@@ -491,7 +518,7 @@ func _paint_scoreboard(ci: CanvasItem, vp: Vector2, s: float, alpha: float) -> v
 	CBTheme.draw_text(ci, _font, "%d — %d" % [Game.alpha_score, Game.bravo_score],
 			box.position + Vector2(w - 150 * s, 32 * s), int(22 * s), CBTheme.ACCENT_SOFT,
 			HORIZONTAL_ALIGNMENT_RIGHT, 130 * s)
-	var y = box.position.y + 60 * s
+	var y := box.position.y + 60 * s
 	var cols := [20.0, 250.0, 330.0, 400.0, 470.0]
 	CBTheme.draw_text(ci, _font, "PLAYER", box.position + Vector2(cols[0] * s, y), int(12 * s), CBTheme.TEXT_DIM)
 	CBTheme.draw_text(ci, _font, "TEAM", box.position + Vector2(cols[1] * s, y), int(12 * s), CBTheme.TEXT_DIM)
@@ -500,7 +527,7 @@ func _paint_scoreboard(ci: CanvasItem, vp: Vector2, s: float, alpha: float) -> v
 	CBTheme.draw_text(ci, _font, "HS", box.position + Vector2(cols[4] * s, y), int(12 * s), CBTheme.TEXT_DIM)
 	y += row_h * 0.85
 	for row in rows:
-		var rteam: int = int(row.get("team", 0))
+		var rteam := int(row.get("team", 0))
 		var name := str(row.get("name", "?"))
 		var is_local := bool(row.get("is_local", false))
 		if is_local:

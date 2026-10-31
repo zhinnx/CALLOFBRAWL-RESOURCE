@@ -55,7 +55,7 @@ func _process(delta: float) -> void:
 
 # ---------------------------------------------------------------- resources
 func _build_textures() -> void:
-	var img = Image.create(64, 64, false, Image.FORMAT_RGBA8)
+	var img := Image.create(64, 64, false, Image.FORMAT_RGBA8)
 	img.fill(Color(0, 0, 0, 0))
 	for y in 64:
 		for x in 64:
@@ -77,7 +77,7 @@ func _build_textures() -> void:
 	_decal_material.no_depth_test = false
 	_decal_material.disable_receive_shadows = true
 
-	var soft = Image.create(32, 32, false, Image.FORMAT_RGBA8)
+	var soft := Image.create(32, 32, false, Image.FORMAT_RGBA8)
 	soft.fill(Color(0, 0, 0, 0))
 	for y in 32:
 		for x in 32:
@@ -200,18 +200,18 @@ func _build_tracers() -> void:
 # ---------------------------------------------------------------- spawn API
 ## Small dark hole decal aligned with the impact normal.
 func spawn_impact(point: Vector3, normal: Vector3, scale: float = 1.0) -> void:
-	var mi = _decal_pool[_decal_index]
+	var mi := _decal_pool[_decal_index]
 	_decal_index = (_decal_index + 1) % _decal_pool.size()
 	mi.visible = true
 	mi.scale = Vector3.ONE * scale
-	var up = normal.normalized()
+	var up := normal.normalized()
 	if absf(up.dot(Vector3.UP)) > 0.98:
 		up = Vector3.FORWARD
 	mi.global_transform = Transform3D(Basis.looking_at(-normal.normalized(), up), point + normal.normalized() * 0.012)
 
 
 func spawn_spark_burst(point: Vector3, normal: Vector3) -> void:
-	var p = _spark_pool[_spark_index]
+	var p := _spark_pool[_spark_index]
 	_spark_index = (_spark_index + 1) % _spark_pool.size()
 	p.global_position = point + normal.normalized() * 0.05
 	p.restart()
@@ -219,7 +219,7 @@ func spawn_spark_burst(point: Vector3, normal: Vector3) -> void:
 
 
 func spawn_blood(point: Vector3, normal: Vector3) -> void:
-	var p = _blood_pool[_blood_index]
+	var p := _blood_pool[_blood_index]
 	_blood_index = (_blood_index + 1) % _blood_pool.size()
 	p.global_position = point + normal.normalized() * 0.05
 	p.restart()
@@ -229,14 +229,14 @@ func spawn_blood(point: Vector3, normal: Vector3) -> void:
 ## Brief tracer beam. `duration` keeps it subtle (0.045 s reads well at 60 fps).
 func spawn_tracer(from: Vector3, to: Vector3, duration: float = 0.05) -> void:
 	var dir := to - from
-	var length: float = dir.length()
+	var length := dir.length()
 	if length < 0.2:
 		return
 	var slot := _tracer_index
-	var mi = _tracer_pool[slot]
+	var mi := _tracer_pool[slot]
 	_tracer_index = (_tracer_index + 1) % _tracer_pool.size()
 	var mid := (from + to) * 0.5
-	var basis = Basis.looking_at(dir.normalized(), Vector3.UP if absf(dir.normalized().y) < 0.97 else Vector3.RIGHT)
+	var basis := Basis.looking_at(dir.normalized(), Vector3.UP if absf(dir.normalized().y) < 0.97 else Vector3.RIGHT)
 	mi.global_transform = Transform3D(basis.scaled(Vector3(1, 1, length)), mid)
 	mi.visible = true
 	# Time-based expiry instead of a Tween: at 600 RPM with nine bots the tween churn
@@ -258,7 +258,7 @@ func make_muzzle_flash() -> Node3D:
 	mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
 	mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
 	mat.albedo_color = Color(1.0, 0.82, 0.45)
-	var img = Image.create(32, 32, false, Image.FORMAT_RGBA8)
+	var img := Image.create(32, 32, false, Image.FORMAT_RGBA8)
 	img.fill(Color(0, 0, 0, 0))
 	for y in 32:
 		for x in 32:

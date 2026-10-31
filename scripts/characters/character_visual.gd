@@ -75,7 +75,7 @@ func build(for_team: int, local_player: bool, with_rifle: bool = true) -> void:
 		return
 	var model: Node3D = packed.instantiate() as Node3D
 	model.name = "Army"
-	var s = TARGET_HEIGHT / MODEL_HEIGHT
+	var s := TARGET_HEIGHT / MODEL_HEIGHT
 	model.scale = Vector3.ONE * s
 	# Drop the model so its feet rest exactly on this node's origin, then turn it so it
 	# faces -Z (the direction a Node3D's "forward" points in this project).
@@ -102,11 +102,11 @@ func _apply_team_materials(model: Node3D) -> void:
 		var mi := node as MeshInstance3D
 		if mi == null:
 			continue
-		var source = mi.get_active_material(0)
+		var source := mi.get_active_material(0)
 		if source is StandardMaterial3D:
 			var src := source as StandardMaterial3D
-			var mat_name = src.resource_name.to_lower()
-			var apply: bool = false
+			var mat_name := src.resource_name.to_lower()
+			var apply := false
 			for tag in tint_tags:
 				if mat_name.contains(tag):
 					apply = true
@@ -177,15 +177,15 @@ func animate(delta: float, move_speed: float, on_floor: bool, vertical_speed: fl
 	else:
 		_walk_phase = lerpf(_walk_phase, 0.0, minf(1.0, delta * 6.0))
 	# breathing when still
-	var breathe = sin(_t * 1.8) * 0.012 if move_speed < 0.15 else 0.0
+	var breathe := sin(_t * 1.8) * 0.012 if move_speed < 0.15 else 0.0
 	# vertical bob follows the step cycle
-	var bob_amp = 0.035 * clampf(_speed_ratio, 0.4, 1.4) if on_floor else 0.0
+	var bob_amp := 0.035 * clampf(_speed_ratio, 0.4, 1.4) if on_floor else 0.0
 	_bob = lerpf(_bob, -absf(sin(_walk_phase)) * bob_amp + breathe, minf(1.0, delta * 12.0))
 	model_root.position = _base_model_position + Vector3(0.0, _bob, 0.0)
 	# body roll while stepping
-	var roll = sin(_walk_phase) * deg_to_rad(3.0) * clampf(_speed_ratio, 0.0, 1.0)
+	var roll := sin(_walk_phase) * deg_to_rad(3.0) * clampf(_speed_ratio, 0.0, 1.0)
 	# forward lean while running, plus a jump tuck
-	var lean_target = deg_to_rad(-8.0) * clampf(_speed_ratio - 0.5, 0.0, 1.0) if on_floor else deg_to_rad(4.0)
+	var lean_target := deg_to_rad(-8.0) * clampf(_speed_ratio - 0.5, 0.0, 1.0) if on_floor else deg_to_rad(4.0)
 	_lean = lerpf(_lean, lean_target, minf(1.0, delta * 5.0))
 	model_root.rotation = Vector3(_lean, 0.0, roll + sin(_t * 1.1) * deg_to_rad(0.6))
 	if weapon_pivot != null:
@@ -217,7 +217,7 @@ func revive() -> void:
 func _update_death(delta: float) -> void:
 	_death_time += delta
 	var t := clampf(_death_time / 0.55, 0.0, 1.0)
-	var ease = 1.0 - pow(1.0 - t, 3.0)
+	var ease := 1.0 - pow(1.0 - t, 3.0)
 	model_root.rotation.x = deg_to_rad(-82.0) * ease
 	model_root.position = _base_model_position + Vector3(0.0, -0.65 * ease, -0.25 * ease)
 	if _death_time > 2.6:

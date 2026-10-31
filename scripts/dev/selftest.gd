@@ -161,7 +161,7 @@ func _check_settings() -> void:
 	_ok("match length default 10 min", is_equal_approx(Settings.get_float("match_minutes"), 10.0))
 	_ok("respawn default 3 s", is_equal_approx(Settings.get_float("respawn_delay"), 3.0))
 	_ok("aim assist default on", Settings.get_bool("aim_assist"))
-	var before = Settings.get_float("look_sensitivity")
+	var before := Settings.get_float("look_sensitivity")
 	Settings.set_value("look_sensitivity", 0.77)
 	Settings.save_settings()
 	Settings.load_settings()
@@ -188,21 +188,21 @@ func _check_instantiation() -> void:
 	if map_scene != null:
 		var map: Node = map_scene.instantiate()
 		_ok("map instantiates", map != null)
-		var meshes = map.find_children("*", "MeshInstance3D", true, false)
+		var meshes := map.find_children("*", "MeshInstance3D", true, false)
 		_ok("map has mesh instances", meshes.size() > 20, "%d meshes" % meshes.size())
 		map.free()
 
 	var char_scene := load("res://army_character_1.glb") as PackedScene
 	if char_scene != null:
 		var body: Node = char_scene.instantiate()
-		var body_meshes = body.find_children("*", "MeshInstance3D", true, false)
+		var body_meshes := body.find_children("*", "MeshInstance3D", true, false)
 		_ok("character has 7 mesh instances", body_meshes.size() == 7, "%d" % body_meshes.size())
 		body.free()
 
 	var gun_scene := load("res://ak47_with_scope.glb") as PackedScene
 	if gun_scene != null:
 		var gun: Node = gun_scene.instantiate()
-		var gun_meshes = gun.find_children("*", "MeshInstance3D", true, false)
+		var gun_meshes := gun.find_children("*", "MeshInstance3D", true, false)
 		_ok("rifle has mesh instances", gun_meshes.size() >= 2, "%d" % gun_meshes.size())
 		gun.free()
 
@@ -212,12 +212,12 @@ func _check_instantiation() -> void:
 	var region := CBNavMeshBuilder.build(host)
 	_ok("NavigationRegion3D built", region != null)
 	if region != null and region.navigation_mesh != null:
-		var nm = region.navigation_mesh
+		var nm := region.navigation_mesh
 		_ok("navmesh has vertices", nm.vertices.size() > 1000, "%d" % nm.vertices.size())
 		_ok("navmesh has polygons", nm.get_polygon_count() > 1000, "%d" % nm.get_polygon_count())
 		# every emitted triangle must resolve to real vertices
 		var bad_index := 0
-		var vcount = nm.vertices.size()
+		var vcount := nm.vertices.size()
 		for p_i in nm.get_polygon_count():
 			for idx: int in nm.get_polygon(p_i):
 				if idx < 0 or idx >= vcount:

@@ -14,9 +14,10 @@
 class_name CBMobileInputController
 extends Node
 
+## Emitted whenever the on-screen controls are re-laid-out (start-up, rotation).
+signal layout_changed
+
 var player: CBPlayerController
-## Assigned by the gameplay scene. Only pause toggling goes through it, so the
-## narrowest useful type keeps this controller independent of the HUD internals.
 var hud: CanvasLayer
 var aim_assist: CBAimAssist
 
@@ -28,12 +29,26 @@ var btn_ads: CBAdaptiveIconButton
 var btn_jump: CBAdaptiveIconButton
 var btn_pause: CBAdaptiveIconButton
 
+## Layout constants in 720p units; every one is multiplied by the viewport scale.
+const _EDGE := 14.0
+const _STICK_BOX := 300.0
+const _STICK_RADIUS := 104.0
+const _FIRE_BOX := 220.0
+const _FIRE_RADIUS := 84.0
+const _BUTTON := 78.0
+const _BUTTON_GAP := 12.0
+const _ACTION_STACK_GAP := 18.0
+
 var enabled: bool = true
+var _scale: float = 1.0
 var _sprint_hold: bool = false
 
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_PAUSABLE
+	# The controls are 2D nodes parented to a plain Node, so they land in the root
+	# canvas layer. The HUD draws in its own CanvasLayer on top of that, which is what
+	# we want: the joystick must never be Z-ordered in front of the score/timer.
 	_build_controls()
 	_layout_controls()
 	get_viewport().size_changed.connect(_layout_controls)
@@ -91,29 +106,76 @@ func _make_button(node_name: String, icon_type: int) -> CBAdaptiveIconButton:
 ## landscape resolution without anchors (the controller is a plain Node so that it
 ## receives touches in `_input` before any Control can consume them).
 func _layout_controls() -> void:
-	var vp = get_viewport().get_visible_rect().size
+	var vp := get_viewport().get_visible_rect().size
 	if vp.x <= 0.0 or vp.y <= 0.0:
 		return
-	var s := clampf(vp.y / 720.0, 0.62, 1.9)
-	joystick.position = Vector2(16.0 * s, vp.y - 352.0 * s)
-	joystick.size = Vector2(336.0 * s, 336.0 * s)
-	joystick.radius = 118.0 * s
-	fire_button.position = Vector2(vp.x - 306.0 * s, vp.y - 306.0 * s)
-	fire_button.size = Vector2(288.0 * s, 288.0 * s)
-	fire_button.radius = 92.0 * s
-	_place(btn_reload, vp, Vector2(-424, -206), Vector2(100, 100), s)
-	_place(btn_ads, vp, Vector2(-310, -140), Vector2(100, 100), s)
-	_place(btn_jump, vp, Vector2(-200, -112), Vector2(88, 88), s)
-	_place(btn_pause, vp, Vector2(-92, -74), Vector2(64, 64), s)
+	_scale = clampf(vp.y / 720.0, 0.62, 1.9)
+	var s := _scale
+
+	# --- movement stick, bottom-left. SQUARE control whose size is twice the radius,
+	#     so the dynamic origin has room and the drawn ring never leaves the box.
+	joystick.size = Vector2(_STICK_BOX * s, _STICK_BOX * s)
+	joystick.radius = _STICK_RADIUS * s
+	joystick.position = Vector2(_EDGE * s, vp.y - _EDGE * s - joystick.size.y)
+
+	# --- fire button, bottom-right, sized to reach with a thumb without covering
+	#     anything else.
+	fire_button.size = Vector2(_FIRE_BOX * s, _FIRE_BOX * s)
+	fire_button.radius = _FIRE_RADIUS * s
+	fire_button.position = Vector2(vp.x - _EDGE * s - fire_button.size.x,
+			vp.y - _EDGE * s - fire_button.size.y)
+
+	# --- action buttons: a diagonal strip along the right edge, ABOVE the fire button.
+	#     Every one of them must stay clear of the fire control: a fire button that
+	#     covers ADS/JUMP/PAUSE makes them untouchable (that was the original bug).
+	var btn := _BUTTON * s
+	var gap := _BUTTON_GAP * s
+	var right_x := vp.x - _EDGE * s - btn
+	var y := fire_button.position.y - _ACTION_STACK_GAP * s
+	var stack := [btn_pause, btn_jump, btn_ads, btn_reload]
+	for i in stack.size():
+		var c: Control = stack[i]
+		var size_i := btn * (0.82 if c == btn_pause else 1.0)
+		var x_i := right_x + (btn - size_i) * 0.5
+		y -= size_i
+		c.size = Vector2(size_i, size_i)
+		c.position = Vector2(x_i, y)
+		c.pivot_offset = c.size * 0.5
+		y -= gap
+
+	# --- keep the ADS/reload strip from colliding with the stick on very short screens
+	var lowest_action_x := right_x
+	if lowest_action_x - (joystick.position.x + joystick.size.x) < gap:
+		# not enough horizontal room (very narrow window): lift the strip instead
+		var lift := gap * 2.0
+		for c in stack:
+			c.position.y -= lift
+
 	if look_area != null:
 		look_area.position = Vector2.ZERO
 		look_area.size = vp
+	layout_changed.emit()
 
 
-func _place(control: Control, vp: Vector2, offset: Vector2, box: Vector2, s: float) -> void:
-	control.size = box * s
-	control.position = vp + offset * s
-	control.pivot_offset = control.size * 0.5
+## Rect of the action strip in viewport space, so the HUD can keep its readouts clear
+## of the touch controls instead of guessing.
+func action_strip_rect() -> Rect2:
+	var r := Rect2()
+	var first := true
+	for c in [btn_pause, btn_jump, btn_ads, btn_reload]:
+		if c == null:
+			continue
+		var cr := Rect2(c.position, c.size)
+		r = cr if first else r.merge(cr)
+		first = false
+	return r
+
+
+## Rect currently occupied by the movement stick.
+func stick_rect() -> Rect2:
+	if joystick == null:
+		return Rect2()
+	return Rect2(joystick.position, joystick.size)
 
 
 func bind_target(p: CBPlayerController, assist: CBAimAssist) -> void:
@@ -180,7 +242,7 @@ func _on_move_changed(value: Vector2, sprinting: bool) -> void:
 func _on_look_delta(relative: Vector2) -> void:
 	if player == null:
 		return
-	var s = Settings.get_float("look_sensitivity")
+	var s := Settings.get_float("look_sensitivity")
 	# aim assist slow-down is applied through the player so ADS sensitivity also
 	# composes correctly (the player multiplies by its own sight scale)
 	player.look_scale = aim_assist.sensitivity_multiplier() if aim_assist != null else 1.0
@@ -239,6 +301,8 @@ func _on_settings_changed(key: String, _value: Variant) -> void:
 
 # ---------------------------------------------------------------- state
 func set_enabled(value: bool) -> void:
+	if enabled == value:
+		return
 	enabled = value
 	if fire_button:
 		fire_button.visible = value
@@ -251,16 +315,43 @@ func set_enabled(value: bool) -> void:
 		_reset_all()
 
 
-func _reset_all() -> void:
-	if joystick:
+## A phone that loses focus (incoming call, notification shade, app switch) never
+## delivers the "finger lifted" events, which used to leave the fire button stuck on
+## and the character walking. Clear every claimed touch when that happens.
+func _notification(what: int) -> void:
+	match what:
+		NOTIFICATION_APPLICATION_FOCUS_OUT:
+			_release_all_touches()
+		NOTIFICATION_APPLICATION_PAUSED:
+			_release_all_touches()
+		NOTIFICATION_WM_WINDOW_FOCUS_OUT:
+			_release_all_touches()
+
+
+func _release_all_touches() -> void:
+	if joystick != null:
 		joystick.reset()
-	if fire_button:
+	if fire_button != null:
 		fire_button.reset()
-	if look_area:
+	if look_area != null:
 		look_area.reset()
-	if player:
+	for b in [btn_reload, btn_ads, btn_jump, btn_pause]:
+		if b != null:
+			b.reset()
+	if player != null:
 		player.set_move_input(Vector2.ZERO)
 		player.set_trigger(false)
+		player.set_sprinting(false)
+
+
+## Full reset: clears every claimed touch, every latched button state and the
+## movement/trigger/sprint inputs that the player would otherwise keep applying
+## while the controls are hidden (pause menu, settings, death, results screen).
+func _reset_all() -> void:
+	_release_all_touches()
+	if btn_ads != null:
+		btn_ads.toggled_on = false
+	_sprint_hold = false
 
 
 ## Dead player: hide the combat controls but keep the world visible.

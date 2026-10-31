@@ -73,7 +73,7 @@ static func rifle_shot(distant: bool = false) -> AudioStreamWAV:
 	var out := PackedFloat32Array()
 	out.resize(n)
 	for i in n:
-		var t = float(i) / RATE
+		var t := float(i) / RATE
 		var env: float = exp(-t * (30.0 if not distant else 11.0))
 		var attack: float = minf(1.0, t / 0.0015)
 		var thump: float = sin(TAU * (95.0 - t * 90.0) * t) * exp(-t * 26.0) * 0.85
@@ -102,7 +102,7 @@ static func _mechanical(dur: float, cutoff: float, gain: float, seed_value: int,
 	var out := PackedFloat32Array()
 	out.resize(n)
 	for i in n:
-		var t = float(i) / RATE
+		var t := float(i) / RATE
 		var env: float = exp(-t * 42.0) * minf(1.0, t / attack)
 		var metal: float = sin(TAU * 1750.0 * t) * exp(-t * 60.0) * 0.35
 		out[i] = (buf[i] * 0.8 + metal) * env * gain
@@ -114,7 +114,7 @@ static func empty_click(pitch: float = 1.0) -> AudioStreamWAV:
 	var out := PackedFloat32Array()
 	out.resize(n)
 	for i in n:
-		var t = float(i) / RATE
+		var t := float(i) / RATE
 		var env: float = exp(-t * 95.0)
 		out[i] = (sin(TAU * 2600.0 * pitch * t) * 0.5 + sin(TAU * 3900.0 * pitch * t) * 0.2) * env * 0.5
 	return _wav(out)
@@ -129,7 +129,7 @@ static func impact_concrete() -> AudioStreamWAV:
 	var out := PackedFloat32Array()
 	out.resize(n)
 	for i in n:
-		var t = float(i) / RATE
+		var t := float(i) / RATE
 		out[i] = buf[i] * exp(-t * 55.0) * 0.55
 	return _wav(out)
 
@@ -142,7 +142,7 @@ static func impact_flesh() -> AudioStreamWAV:
 	var out := PackedFloat32Array()
 	out.resize(n)
 	for i in n:
-		var t = float(i) / RATE
+		var t := float(i) / RATE
 		var thump: float = sin(TAU * 120.0 * t) * exp(-t * 40.0) * 0.35
 		out[i] = (buf[i] * 0.5 + thump) * exp(-t * 26.0)
 	return _wav(out)
@@ -153,7 +153,7 @@ static func headshot_ding() -> AudioStreamWAV:
 	var out := PackedFloat32Array()
 	out.resize(n)
 	for i in n:
-		var t = float(i) / RATE
+		var t := float(i) / RATE
 		var env: float = exp(-t * 18.0)
 		out[i] = (sin(TAU * 1480.0 * t) * 0.45 + sin(TAU * 2220.0 * t) * 0.18) * env
 	return _wav(out)
@@ -164,7 +164,7 @@ static func hitmarker() -> AudioStreamWAV:
 	var out := PackedFloat32Array()
 	out.resize(n)
 	for i in n:
-		var t = float(i) / RATE
+		var t := float(i) / RATE
 		out[i] = sin(TAU * 2100.0 * t) * exp(-t * 120.0) * 0.25
 	return _wav(out)
 
@@ -178,7 +178,7 @@ static func footstep() -> AudioStreamWAV:
 	var out := PackedFloat32Array()
 	out.resize(n)
 	for i in n:
-		var t = float(i) / RATE
+		var t := float(i) / RATE
 		var env: float = exp(-t * 48.0) * minf(1.0, t / 0.004)
 		out[i] = buf[i] * env * 0.5
 	return _wav(out)
@@ -192,7 +192,7 @@ static func jump() -> AudioStreamWAV:
 	var out := PackedFloat32Array()
 	out.resize(n)
 	for i in n:
-		var t = float(i) / RATE
+		var t := float(i) / RATE
 		out[i] = buf[i] * exp(-t * 30.0) * minf(1.0, t / 0.01) * 0.35
 	return _wav(out)
 
@@ -205,7 +205,7 @@ static func land() -> AudioStreamWAV:
 	var out := PackedFloat32Array()
 	out.resize(n)
 	for i in n:
-		var t = float(i) / RATE
+		var t := float(i) / RATE
 		var thump: float = sin(TAU * 70.0 * t) * exp(-t * 26.0) * 0.4
 		out[i] = (buf[i] * 0.5 + thump) * exp(-t * 20.0)
 	return _wav(out)
@@ -217,7 +217,7 @@ static func elimination() -> AudioStreamWAV:
 	var out := PackedFloat32Array()
 	out.resize(n)
 	for i in n:
-		var t = float(i) / RATE
+		var t := float(i) / RATE
 		var env: float = exp(-t * 8.0)
 		var f1: float = 660.0 * (1.0 - t * 0.5)
 		out[i] = (sin(TAU * f1 * t) * 0.35 + sin(TAU * f1 * 1.5 * t) * 0.12) * env
@@ -229,7 +229,7 @@ static func respawn() -> AudioStreamWAV:
 	var out := PackedFloat32Array()
 	out.resize(n)
 	for i in n:
-		var t = float(i) / RATE
+		var t := float(i) / RATE
 		var env: float = minf(1.0, t / 0.05) * exp(-t * 4.0)
 		var f: float = 220.0 + 520.0 * minf(1.0, t / 0.4)
 		out[i] = (sin(TAU * f * t) * 0.28 + sin(TAU * f * 2.0 * t) * 0.1) * env
@@ -241,7 +241,7 @@ static func countdown() -> AudioStreamWAV:
 	var out := PackedFloat32Array()
 	out.resize(n)
 	for i in n:
-		var t = float(i) / RATE
+		var t := float(i) / RATE
 		out[i] = sin(TAU * 880.0 * t) * exp(-t * 22.0) * 0.35
 	return _wav(out)
 
@@ -252,7 +252,7 @@ static func match_end() -> AudioStreamWAV:
 	out.resize(n)
 	var notes := [440.0, 554.0, 659.0, 880.0]
 	for i in n:
-		var t = float(i) / RATE
+		var t := float(i) / RATE
 		var v: float = 0.0
 		for k in notes.size():
 			var start: float = k * 0.16
@@ -269,7 +269,7 @@ static func ui_click() -> AudioStreamWAV:
 	var out := PackedFloat32Array()
 	out.resize(n)
 	for i in n:
-		var t = float(i) / RATE
+		var t := float(i) / RATE
 		out[i] = sin(TAU * 1250.0 * t) * exp(-t * 90.0) * 0.3
 	return _wav(out)
 
@@ -279,7 +279,7 @@ static func ui_back() -> AudioStreamWAV:
 	var out := PackedFloat32Array()
 	out.resize(n)
 	for i in n:
-		var t = float(i) / RATE
+		var t := float(i) / RATE
 		out[i] = sin(TAU * (900.0 - t * 2500.0) * t) * exp(-t * 60.0) * 0.28
 	return _wav(out)
 
@@ -292,9 +292,9 @@ static func menu_ambience() -> AudioStreamWAV:
 	var out := PackedFloat32Array()
 	out.resize(n)
 	var roots := [110.0, 146.83, 98.0, 130.81]
-	var seg = dur / roots.size()
+	var seg := dur / roots.size()
 	for i in n:
-		var t = float(i) / RATE
+		var t := float(i) / RATE
 		var idx := mini(int(t / seg), roots.size() - 1)
 		var lt: float = t - idx * seg
 		var f: float = roots[idx]

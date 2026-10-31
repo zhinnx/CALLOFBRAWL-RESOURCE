@@ -53,7 +53,7 @@ func start_match() -> void:
 func spawn_roster() -> void:
 	# --- local player
 	if player != null:
-		var spawn = map_loader.resolve_spawn(CBTeam.ALPHA, player_spawn_index)
+		var spawn := map_loader.resolve_spawn(CBTeam.ALPHA, player_spawn_index)
 		player.configure(Game.local_combatant_id, Settings.get_value("player_name"), CBTeam.ALPHA)
 		player.on_spawn(spawn, _yaw_towards_middle(spawn))
 		Game.register_combatant(Game.local_combatant_id, str(Settings.get_value("player_name")),
@@ -62,7 +62,7 @@ func spawn_roster() -> void:
 		player_spawn_index += 1
 	# --- bots
 	bots.clear()
-	var difficulty = Settings.get_int("bot_difficulty")
+	var difficulty := Settings.get_int("bot_difficulty")
 	for i in BOT_NAMES_ALPHA.size():
 		_add_bot("bot_a%d" % i, BOT_NAMES_ALPHA[i], CBTeam.ALPHA, i, difficulty)
 	for i in BOT_NAMES_BRAVO.size():
@@ -81,7 +81,7 @@ func _add_bot(id: String, bot_name: String, team: int, index: int, difficulty: i
 	bot.team = team
 	add_child(bot)
 	bot.configure(id, bot_name, team, difficulty)
-	var spawn = map_loader.resolve_spawn(team, index)
+	var spawn := map_loader.resolve_spawn(team, index)
 	bot.on_spawn(spawn, _yaw_towards_middle(spawn))
 	bots.append(bot)
 	Game.register_combatant(id, bot_name, team, true, false)
@@ -109,7 +109,7 @@ func _process(delta: float) -> void:
 	_update_respawns(delta)
 	# last-10-second countdown beeps
 	if time_left <= 10.0:
-		var sec: int = int(ceil(time_left))
+		var sec := int(ceil(time_left))
 		if sec != _last_shown_second:
 			_last_shown_second = sec
 			Audio.play_ui("countdown", -14.0, 1.0 + (10 - sec) * 0.03)
@@ -136,7 +136,7 @@ func _respawn(entry: Dictionary) -> void:
 	if node == null or not is_instance_valid(node):
 		return
 	var team: int = int(entry.get("team", CBTeam.ALPHA))
-	var pos = map_loader.pick_spawn(team, _living_positions())
+	var pos := map_loader.pick_spawn(team, _living_positions())
 	var yaw := _yaw_towards_middle(pos)
 	if node is CBBotController:
 		(node as CBBotController).on_respawn(pos, yaw)
@@ -208,7 +208,7 @@ func begin_respawn_timer(node: Node) -> void:
 		if entry.get("node") == node:
 			return
 	var id := ""
-	var team = CBTeam.ALPHA
+	var team := CBTeam.ALPHA
 	if node is CBBotController:
 		id = (node as CBBotController).combatant_id
 		team = (node as CBBotController).team
@@ -221,7 +221,7 @@ func begin_respawn_timer(node: Node) -> void:
 func _name_for(id: String) -> String:
 	if id == "" or id == "world":
 		return "Environment"
-	var stat = Game.get_stat(id)
+	var stat := Game.get_stat(id)
 	if stat.is_empty():
 		return "Unknown"
 	return str(stat.get("name", "Unknown"))
@@ -230,7 +230,7 @@ func _name_for(id: String) -> String:
 func _team_for(id: String) -> int:
 	if id == "" or id == "world":
 		return CBTeam.NONE
-	var stat = Game.get_stat(id)
+	var stat := Game.get_stat(id)
 	if stat.is_empty():
 		return CBTeam.NONE
 	return int(stat.get("team", CBTeam.NONE))
@@ -247,7 +247,7 @@ func _finish(reason: String) -> void:
 	finished = true
 	running = false
 	Game.match_elapsed = Game.match_minutes * 60.0 if reason == "time_limit" else Game.match_elapsed
-	var result = Game.finish_match(reason)
+	var result := Game.finish_match(reason)
 	match_finished.emit(result)
 	Audio.play_ui("match_end", -4.0)
 

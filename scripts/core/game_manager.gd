@@ -150,7 +150,7 @@ func is_score_limit_reached() -> bool:
 
 func finish_match(reason: String) -> Dictionary:
 	match_active = false
-	var winner = CBTeam.ALPHA
+	var winner := CBTeam.ALPHA
 	if bravo_score > alpha_score:
 		winner = CBTeam.BRAVO
 	elif alpha_score == bravo_score:
@@ -159,7 +159,7 @@ func finish_match(reason: String) -> Dictionary:
 	var mvp_kills := -1
 	for id in stats.keys():
 		var s: Dictionary = stats[id]
-		var score: int = int(s.get("kills", 0)) * 2 - int(s.get("deaths", 0))
+		var score := int(s.get("kills", 0)) * 2 - int(s.get("deaths", 0))
 		if score > mvp_kills:
 			mvp_kills = score
 			mvp_id = id

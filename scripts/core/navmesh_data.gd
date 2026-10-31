@@ -54,7 +54,7 @@ static func polygon_centers() -> PackedVector3Array:
 	var verts := vertices()
 	var out := PackedVector3Array()
 	for poly: Array in polygons():
-		var c: Vector3 = Vector3.ZERO
+		var c := Vector3.ZERO
 		for idx: int in poly:
 			c += verts[idx]
 		out.append(c / float(maxi(1, poly.size())))
@@ -66,7 +66,7 @@ static func polygon_centers() -> PackedVector3Array:
 static func adjacency() -> Array:
 	if _adjacency_ready:
 		return _adjacency
-	var count = polygons().size()
+	var count := polygons().size()
 	_adjacency = []
 	_adjacency.resize(count)
 	for i in count:
@@ -91,7 +91,7 @@ static func nearest_polygon(pos: Vector3) -> int:
 	_build_lookup()
 	var bucket := Vector2i(int(floor(pos.x / LOOKUP_CELL)), int(floor(pos.z / LOOKUP_CELL)))
 	var best := -1
-	var best_dist = INF
+	var best_dist := INF
 	for ring in 4:
 		# only widen the search when nothing was found in the inner rings
 		if best >= 0 and ring > 0:
@@ -103,12 +103,12 @@ static func nearest_polygon(pos: Vector3) -> int:
 				var key := Vector2i(bucket.x + dx, bucket.y + dz)
 				var list: PackedInt32Array = _lookup.get(key, PackedInt32Array())
 				for i: int in list:
-					var c = centers[i]
-					var ddx = c.x - pos.x
-					var ddz = c.z - pos.z
+					var c := centers[i]
+					var ddx := c.x - pos.x
+					var ddz := c.z - pos.z
 					var dy := absf(c.y - pos.y)
-					var penalty = maxf(0.0, dy - 2.0) * 12.0
-					var d = ddx * ddx + ddz * ddz + penalty * penalty
+					var penalty := maxf(0.0, dy - 2.0) * 12.0
+					var d := ddx * ddx + ddz * ddz + penalty * penalty
 					if d < best_dist:
 						best_dist = d
 						best = i
@@ -116,8 +116,8 @@ static func nearest_polygon(pos: Vector3) -> int:
 		return best
 	# fallback: full scan (only happens for points far outside the map)
 	for i in centers.size():
-		var c = centers[i]
-		var d: Vector2 = Vector2(c.x - pos.x, c.z - pos.z).length_squared()
+		var c := centers[i]
+		var d := Vector2(c.x - pos.x, c.z - pos.z).length_squared()
 		if d < best_dist:
 			best_dist = d
 			best = i
@@ -133,7 +133,7 @@ static func _build_lookup() -> void:
 		return
 	var centers := polygon_centers()
 	for i in centers.size():
-		var c = centers[i]
+		var c := centers[i]
 		var key := Vector2i(int(floor(c.x / LOOKUP_CELL)), int(floor(c.z / LOOKUP_CELL)))
 		var list: PackedInt32Array = _lookup.get(key, PackedInt32Array())
 		list.append(i)
@@ -165,7 +165,7 @@ static func find_path(from_pos: Vector3, to_pos: Vector3, max_expansions: int = 
 		return single
 	var centers := polygon_centers()
 	var adj := adjacency()
-	var count = centers.size()
+	var count := centers.size()
 
 	var g_score := PackedFloat32Array()
 	g_score.resize(count)
@@ -200,10 +200,10 @@ static func find_path(from_pos: Vector3, to_pos: Vector3, max_expansions: int = 
 		for nb: int in adj[current]:
 			if closed[nb] == 1:
 				continue
-			var a = centers[current]
-			var b = centers[nb]
-			var step: Vector2 = Vector2(b.x - a.x, b.z - a.z).length() + absf(b.y - a.y) * 0.5
-			var tentative = g_score[current] + step
+			var a := centers[current]
+			var b := centers[nb]
+			var step := Vector2(b.x - a.x, b.z - a.z).length() + absf(b.y - a.y) * 0.5
+			var tentative := g_score[current] + step
 			if tentative < g_score[nb] - 0.0001:
 				g_score[nb] = tentative
 				came[nb] = current
@@ -216,28 +216,28 @@ static func _heap_push(keys: PackedFloat64Array, values: PackedInt32Array, in_op
 	keys.append(key)
 	values.append(value)
 	in_open[value] = 1
-	var i = keys.size() - 1
+	var i := keys.size() - 1
 	while i > 0:
-		var parent = (i - 1) >> 1
+		var parent := (i - 1) >> 1
 		if keys[parent] <= keys[i]:
 			break
-		var k = keys[parent]
+		var k := keys[parent]
 		keys[parent] = keys[i]
 		keys[i] = k
-		var v = values[parent]
+		var v := values[parent]
 		values[parent] = values[i]
 		values[i] = v
 		i = parent
 
 
 static func _heap_pop(keys: PackedFloat64Array, values: PackedInt32Array, in_open: PackedByteArray) -> int:
-	var top = values[0]
+	var top := values[0]
 	in_open[top] = 0
-	var last_key = keys[keys.size() - 1]
-	var last_val = values[values.size() - 1]
+	var last_key := keys[keys.size() - 1]
+	var last_val := values[values.size() - 1]
 	keys.remove_at(keys.size() - 1)
 	values.remove_at(values.size() - 1)
-	var size = keys.size()
+	var size := keys.size()
 	if size == 0:
 		return top
 	keys[0] = last_key
@@ -253,10 +253,10 @@ static func _heap_pop(keys: PackedFloat64Array, values: PackedInt32Array, in_ope
 			smallest = right
 		if keys[i] <= keys[smallest]:
 			break
-		var k = keys[i]
+		var k := keys[i]
 		keys[i] = keys[smallest]
 		keys[smallest] = k
-		var v = values[i]
+		var v := values[i]
 		values[i] = values[smallest]
 		values[smallest] = v
 		i = smallest
@@ -264,8 +264,8 @@ static func _heap_pop(keys: PackedFloat64Array, values: PackedInt32Array, in_ope
 
 
 static func _heuristic(centers: PackedVector3Array, a: int, b: int) -> float:
-	var ca = centers[a]
-	var cb = centers[b]
+	var ca := centers[a]
+	var cb := centers[b]
 	return Vector2(cb.x - ca.x, cb.z - ca.z).length()
 
 
@@ -293,11 +293,11 @@ static func path_points(path: PackedInt32Array, corner_degrees: float = 25.0) ->
 	out.append(centers[path[0]])
 	var limit := cos(deg_to_rad(corner_degrees))
 	for i in range(1, path.size() - 1):
-		var prev = centers[path[i - 1]]
-		var cur = centers[path[i]]
-		var next = centers[path[i + 1]]
-		var d0 = (cur - prev).normalized()
-		var d1 = (next - cur).normalized()
+		var prev := centers[path[i - 1]]
+		var cur := centers[path[i]]
+		var next := centers[path[i + 1]]
+		var d0 := (cur - prev).normalized()
+		var d1 := (next - cur).normalized()
 		if d0.dot(d1) < limit:
 			out.append(cur)
 	out.append(centers[path[path.size() - 1]])

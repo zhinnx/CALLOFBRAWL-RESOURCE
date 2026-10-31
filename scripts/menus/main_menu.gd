@@ -86,18 +86,27 @@ func _make_button(icon_type: int, label: String) -> CBAdaptiveIconButton:
 
 
 func _layout_buttons() -> void:
-	var w = size.x
-	var h = size.y
-	var btn_size := 116.0
-	var start_y = h * 0.42
-	var gap := 118.0
-	var x = w * 0.74
-	for i in _buttons.size():
-		var b = _buttons[i]
-		if not b.visible:
-			continue
+	var w := size.x
+	var h := size.y
+	var shown: Array[CBAdaptiveIconButton] = []
+	for b in _buttons:
+		if b.visible:
+			shown.append(b)
+	if shown.is_empty():
+		return
+	# The stack has to fit on the shortest target screen (a 20:9 phone is only 720
+	# units tall). Four 116 px buttons on a 118 px pitch would push EXIT 52 px below
+	# the bottom edge, where it can never be tapped, so the pitch is derived from
+	# the space that is actually left instead of being hard-coded.
+	var top := h * 0.32
+	var avail := h - top - maxf(48.0, h * 0.05)
+	var pitch := minf(118.0, avail / float(shown.size()))
+	var btn_size := clampf(minf(pitch - 4.0, w * 0.22), 64.0, 116.0)
+	var x := w * 0.74
+	for i in shown.size():
+		var b := shown[i]
 		b.size = Vector2(btn_size, btn_size)
-		b.position = Vector2(x - btn_size * 0.5, start_y + i * gap)
+		b.position = Vector2(x - btn_size * 0.5, top + i * pitch + (pitch - btn_size) * 0.5)
 		b.pivot_offset = b.size * 0.5
 
 
@@ -140,17 +149,17 @@ func _process(delta: float) -> void:
 
 
 func _draw() -> void:
-	var w = size.x
-	var h = size.y
+	var w := size.x
+	var h := size.y
 	# left side callout panels
-	var left = w * 0.055
-	var top = h * 0.20
+	var left := w * 0.055
+	var top := h * 0.20
 	# title
-	var t_size: int = int(clampf(h * 0.13, 54.0, 120.0))
+	var t_size := int(clampf(h * 0.13, 54.0, 120.0))
 	CBTheme.draw_title(self, _font, "CALLOF", Vector2(left, top), t_size, CBTheme.TEXT)
 	CBTheme.draw_title(self, _font, "BRAWL", Vector2(left, top + t_size * 0.95), t_size, CBTheme.ACCENT)
 	# animated underline
-	var line_w = t_size * 3.1
+	var line_w := t_size * 3.1
 	draw_rect(Rect2(left, top + t_size * 1.92, line_w * (0.5 + 0.5 * sin(_title_pulse * 1.2) * 0.5 + 0.25), 4), CBTheme.ACCENT)
 	CBTheme.draw_text(self, _font, "MOBILE FPS  •  TEAM DEATHMATCH  •  DE_DUST2",
 			Vector2(left, top + t_size * 2.25), int(clampf(h * 0.026, 13.0, 22.0)), CBTheme.TEXT_DIM)
@@ -194,7 +203,7 @@ func _draw_credits() -> void:
 		["", 8, CBTheme.TEXT],
 		["ENGINE: Godot 4 — Compatibility renderer (mobile)", 13, CBTheme.TEXT_DIM],
 	]
-	var y = box.position.y + 44
+	var y := box.position.y + 44
 	for entry: Array in lines:
 		CBTheme.draw_text(self, _font, str(entry[0]), Vector2(box.position.x + 28, y), int(entry[1]), entry[2])
 		y += float(entry[1]) + 8.0

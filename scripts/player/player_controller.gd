@@ -231,7 +231,7 @@ func sight_scale() -> float:
 func add_look(delta_yaw_degrees: float, delta_pitch_degrees: float) -> void:
 	if not is_alive:
 		return
-	var mult = sight_scale() * look_scale
+	var mult := sight_scale() * look_scale
 	_yaw -= deg_to_rad(delta_yaw_degrees * mult)
 	_pitch = clampf(_pitch - deg_to_rad(delta_pitch_degrees * mult), deg_to_rad(-85.0), deg_to_rad(85.0))
 
@@ -307,7 +307,7 @@ func _physics_process(delta: float) -> void:
 		input_dir = input_dir.normalized()
 	var basis_yaw := Basis(Vector3.UP, _yaw)
 	var wish := basis_yaw * Vector3(input_dir.x, 0.0, input_dir.y)
-	var speed = WALK_SPEED
+	var speed := WALK_SPEED
 	if weapon != null and weapon.aiming:
 		speed = ADS_SPEED
 	elif _sprinting and input_dir.y < -0.35:
@@ -324,7 +324,7 @@ func _physics_process(delta: float) -> void:
 	velocity.x = horizontal.x
 	velocity.z = horizontal.z
 	var was_on_floor := is_on_floor()
-	var fall_speed = velocity.y
+	var fall_speed := velocity.y
 	move_and_slide()
 
 	if not was_on_floor and is_on_floor():
@@ -341,7 +341,7 @@ func _update_death_camera(delta: float) -> void:
 	# Rise above and behind the body so the player can watch the fight continue.
 	_death_cam_time += delta
 	var t := clampf(_death_cam_time / 1.1, 0.0, 1.0)
-	var ease = 1.0 - pow(1.0 - t, 2.0)
+	var ease := 1.0 - pow(1.0 - t, 2.0)
 	camera_pivot.position = Vector3(0.0, eye_height + 2.4 * ease, 3.4 * ease)
 	camera_pivot.rotation = Vector3(deg_to_rad(-26.0) * ease, 0.0, 0.0)
 
@@ -362,18 +362,18 @@ func _update_camera_rotation(delta: float) -> void:
 		return
 	# recoil is applied as a temporary offset that decays
 	if weapon != null:
-		var target = weapon.recoil_offset()
+		var target := weapon.recoil_offset()
 		_recoil_pitch = lerpf(_recoil_pitch, target.x, minf(1.0, delta * 14.0))
 		_recoil_yaw = lerpf(_recoil_yaw, target.y, minf(1.0, delta * 14.0))
 	# walking head bob
-	var speed: float = Vector2(velocity.x, velocity.z).length()
+	var speed := Vector2(velocity.x, velocity.z).length()
 	if is_on_floor() and speed > 0.5:
 		_bob_time += delta * speed * 1.9
 	else:
 		_bob_time = lerpf(_bob_time, 0.0, minf(1.0, delta * 5.0))
-	var bob_amp = 0.012 * clampf(speed / WALK_SPEED, 0.0, 1.3)
+	var bob_amp := 0.012 * clampf(speed / WALK_SPEED, 0.0, 1.3)
 	_land_kick = move_toward(_land_kick, 0.0, delta * 0.45)
-	var bob_y = sin(_bob_time) * bob_amp
+	var bob_y := sin(_bob_time) * bob_amp
 	rotation = Vector3(0.0, _yaw, 0.0)
 	camera_pivot.rotation = Vector3(_pitch + _recoil_pitch + _land_kick, _recoil_yaw, sin(_bob_time * 0.5) * bob_amp * 1.6)
 	camera_pivot.position = Vector3(0, eye_height + bob_y, 0)
@@ -397,14 +397,14 @@ func _update_weapon_presentation(delta: float) -> void:
 	target_pos += Vector3(_viewmodel_kick_side * 0.05, 0.0, _viewmodel_kick * 0.07)
 	target_rot += Vector3(-_viewmodel_kick * 9.0, 0.0, _viewmodel_kick_side * 6.0)
 	# slow sway while walking so the gun is not glued to the screen
-	var speed: float = Vector2(velocity.x, velocity.z).length()
+	var speed := Vector2(velocity.x, velocity.z).length()
 	if is_on_floor() and speed > 0.5:
 		target_pos += Vector3(sin(_bob_time * 0.5) * 0.008, cos(_bob_time) * 0.006, 0.0)
 	var t := minf(1.0, delta * 11.0)
 	rifle.position = rifle.position.lerp(target_pos, t)
 	rifle.rotation = rifle.rotation.lerp(target_rot, t)
 	if camera != null:
-		var target_fov = 55.0 if ads else 78.0
+		var target_fov := 55.0 if ads else 78.0
 		camera.fov = lerpf(camera.fov, target_fov, minf(1.0, delta * 10.0))
 
 
@@ -484,6 +484,6 @@ func _unhandled_input(event: InputEvent) -> void:
 			set_aiming(mb.pressed)
 	elif event is InputEventMouseMotion:
 		# desktop look speed follows the same setting as touch (0.22 -> 1.0 range)
-		var sens = Settings.get_float("look_sensitivity") * 0.35
+		var sens := Settings.get_float("look_sensitivity") * 0.35
 		add_look((event as InputEventMouseMotion).relative.x * sens,
 				(event as InputEventMouseMotion).relative.y * sens)

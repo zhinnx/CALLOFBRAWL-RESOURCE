@@ -109,7 +109,15 @@ pause → reload → jump → ADS → fire+drag → joystick → look area
 ```
 
 Sizing comes from `get_viewport().get_visible_rect()` with a `size_changed` hook, so the
-layout adapts to any landscape resolution without anchors.
+layout adapts to any landscape resolution without anchors. After every re-layout the
+controller emits `layout_changed`; `Gameplay._sync_hud_exclusion()` forwards the stick and
+action-strip rects to the HUD (`touch_left_block`, `touch_exclusion`), which is how the
+readouts avoid the thumbs instead of guessing at fixed offsets.
+
+Touches are also released when the app loses focus (`_notification()` →
+`NOTIFICATION_APPLICATION_FOCUS_OUT` / `_PAUSED` / `NOTIFICATION_WM_WINDOW_FOCUS_OUT`):
+Android does not deliver the matching "released" event, which otherwise left the fire
+button latched on and the character walking.
 
 ## 7. Extending
 

@@ -56,7 +56,7 @@ static func build_rifle(tint: Color = Color.WHITE, with_flash: bool = true) -> N
 	if tint != Color.WHITE:
 		_apply_tint(model, tint)
 	if with_flash:
-		var flash = Fx.make_muzzle_flash()
+		var flash := Fx.make_muzzle_flash()
 		flash.position = MUZZLE_LOCAL
 		root.add_child(flash)
 	return root
@@ -67,7 +67,7 @@ static func _apply_tint(model: Node3D, tint: Color) -> void:
 		var mi := node as MeshInstance3D
 		if mi == null:
 			continue
-		var mat = mi.get_active_material(0)
+		var mat := mi.get_active_material(0)
 		if mat is StandardMaterial3D:
 			var dup := (mat as StandardMaterial3D).duplicate() as StandardMaterial3D
 			dup.albedo_color = tint

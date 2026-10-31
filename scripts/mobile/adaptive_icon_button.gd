@@ -44,7 +44,7 @@ func _process(delta: float) -> void:
 
 func _draw() -> void:
 	var c := size * 0.5
-	var r = radius * _scale
+	var r := radius * _scale
 	var active := (toggle_mode and toggled_on) or _down
 	var bg := fill
 	if active:
@@ -54,11 +54,11 @@ func _draw() -> void:
 	draw_circle(c, r * (1.0 + 0.03 * _flash), bg)
 	draw_arc(c, r, 0.0, TAU, 48, ring, maxf(1.8, 2.2 * _scale), true)
 	var ink := Color(1, 1, 1, 0.92 if not active else 1.0)
-	var u = r * 0.62
+	var u := r * 0.62
 	match icon:
 		Icon.RELOAD:
 			draw_arc(c, u * 0.78, deg_to_rad(-40), deg_to_rad(250), 32, ink, maxf(2.0, 2.6 * _scale), true)
-			var tip = c + Vector2(cos(deg_to_rad(-40)), sin(deg_to_rad(-40))) * u * 0.78
+			var tip := c + Vector2(cos(deg_to_rad(-40)), sin(deg_to_rad(-40))) * u * 0.78
 			draw_colored_polygon(PackedVector2Array([tip + Vector2(-u * 0.30, -u * 0.20),
 					tip + Vector2(u * 0.28, -u * 0.12), tip + Vector2(-u * 0.02, u * 0.34)]), ink)
 		Icon.ADS:
@@ -82,7 +82,7 @@ func _draw() -> void:
 		Icon.SETTINGS:
 			draw_arc(c, u * 0.42, 0.0, TAU, 28, ink, maxf(2.0, 2.6 * _scale), true)
 			for i in 8:
-				var a = TAU * float(i) / 8.0
+				var a := TAU * float(i) / 8.0
 				var d := Vector2(cos(a), sin(a))
 				draw_line(c + d * u * 0.55, c + d * u * 0.90, ink, maxf(2.0, 2.6 * _scale))
 		Icon.EXIT:
@@ -96,7 +96,7 @@ func _draw() -> void:
 			draw_line(c + Vector2(-u * 0.35, 0), c + Vector2(u * 0.45, u * 0.6), ink, maxf(2.2, 2.8 * _scale))
 		Icon.MENU:
 			for i in 3:
-				var y = -u * 0.55 + i * u * 0.55
+				var y := -u * 0.55 + i * u * 0.55
 				draw_line(c + Vector2(-u * 0.7, y), c + Vector2(u * 0.7, y), ink, maxf(2.2, 2.8 * _scale))
 		Icon.RESTART:
 			draw_arc(c, u * 0.72, deg_to_rad(30), deg_to_rad(330), 36, ink, maxf(2.2, 2.8 * _scale), true)
@@ -104,7 +104,7 @@ func _draw() -> void:
 					c + Vector2(u * 0.92, -u * 0.55), c + Vector2(u * 0.35, -u * 0.20)]), ink)
 		Icon.SCORE:
 			for i in 3:
-				var x = -u * 0.55 + i * u * 0.55
+				var x := -u * 0.55 + i * u * 0.55
 				draw_line(c + Vector2(x, -u * 0.55), c + Vector2(x, u * 0.55), ink, maxf(2.0, 2.4 * _scale))
 			draw_line(c + Vector2(-u * 0.7, -u * 0.55), c + Vector2(u * 0.7, -u * 0.55), ink, maxf(2.0, 2.4 * _scale))
 		Icon.SOUND:
@@ -121,7 +121,7 @@ func _draw() -> void:
 			draw_circle(c, u * 0.16, ink)
 	if label != "":
 		var font := get_theme_default_font()
-		var fs: int = int(18 * _scale)
+		var fs := int(18 * _scale)
 		draw_string(font, Vector2(0, size.y - 4 * _scale), label, HORIZONTAL_ALIGNMENT_CENTER,
 				size.x, fs, Color(1, 1, 1, 0.75))
 
@@ -164,6 +164,15 @@ func _activate() -> void:
 		queue_redraw()
 	else:
 		pressed.emit()
+
+
+## Drops a touch that is still down without activating the button. Used when the app
+## loses focus, where the matching "released" event never arrives.
+func reset() -> void:
+	if touch_index != -1 or _down:
+		touch_index = -1
+		_down = false
+		queue_redraw()
 
 
 ## Convenience for keyboard/desktop and menu wiring.

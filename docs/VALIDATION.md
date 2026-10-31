@@ -3,7 +3,7 @@
 Everything below was executed in this repository. The honest split matters:
 **§1 was verified with a parser/API-level toolchain, geometry simulations, and — for the
 first time — real engine feedback: the project was opened in Godot 4.7.2, which reported
-12 parse errors. All are fixed and documented in §1.6. §3 (runtime behaviour, touch feel,
+12 parse errors. All are fixed and documented in §1.8b. §3 (runtime behaviour, touch feel,
 on-device FPS, APK export) is still NOT executed, because only the parse/compile stage
 could be reached in the build environment.**
 
@@ -131,7 +131,7 @@ Real defects found by the audits above and fixed in the code:
 14. Restart/menu from the pause screen left `get_tree().paused == true`.
 
 
-### 1.6 Engine-feedback round (Godot 4.7.2) — all fixed
+### 1.8b Engine-feedback round 1 (Godot 4.7.2) — all fixed
 
 The project was opened in **Godot 4.7.2** and the console reported 12 parse errors across
 five scripts. This is the most valuable validation this project received, because it
@@ -157,16 +157,35 @@ Final state on the current tree:
 
 ```
 gdcheck.py   -> scripts: 33   scenes/resources: 4   autoloads: 4      issues: {}
-gdstrict.py  -> typed/inference issues: 0
+gdstrict.py  -> typed/inference issues: 0 (advisory only, see the note below)
 deep_audit   -> typed-var member issues: 0
+stringcalls  -> string-call arity problems: 0
+arity        -> typed-receiver call arity problems: 0
+syncheck     -> syntax hazards: 0
+ui_sim       -> layout problems: 0 over 9 resolutions x 3 hud scales
+```
+
+The three checkers that were written *because* of the engine feedback, plus the layout
+simulator, are committed so the numbers above can be reproduced without the original
+scratch files:
+
+```
+python3 scripts/dev/ui_layout_sim.py      # mobile layout sweep
+python3 scripts/dev/checks/stringcalls.py .
+python3 scripts/dev/checks/arity.py .
+python3 scripts/dev/checks/syncheck.py .
 ```
 
 **Warning policy.** Since Godot 4.5 four warnings are errors by default regardless of
 settings, and `treat_warnings_as_errors` itself is inert in 4.7:
 
-* `inference_on_variant` — **0 remaining**: every `var x := …` that the checker could not
-  prove was rewritten to `var x = …` (identical runtime value, no inference step). 245
-  rewritten declarations were diff-verified expression-by-expression to be unchanged.
+* `inference_on_variant` — **0 engine-reported occurrences**. ⚠️ **Correction:** an earlier
+  pass rewrote 245 declarations to `var x = …` because a local checker claimed they were
+  `INFER` violations. That pass was wrong: those `:=` lines were accepted by Godot 4.7.2,
+  and three of the rewrites introduced real compile errors (`Vector2` annotated onto
+  `length()`). The pass was rolled back to the engine-accepted baseline and replaced by
+  12 targeted patches at the lines the engine actually reported. Treat the local
+  `gdstrict.py` INFER count as advisory only — **the engine is the authority.**
 * `get_node_default_without_onready`, `onready_with_export`, `native_method_override` —
   **0 occurrences** in the whole tree (checked against the engine API dump).
 
@@ -174,9 +193,83 @@ The remaining (non-fatal) warnings are turned off in `project.godot` `[debug]` w
 comment explaining why: the four singletons are autoloads, which GDScript reports as
 "unsafe" access even though they always exist.
 
+### 1.9 Engine-feedback round 2 (Godot 4.7.2) — `FIXED`
+
+| Reported by the engine | Root cause | Fix |
+|---|---|---|
+| `audio_manager.gd` — `_build_music(): called with 1 argument, expects 0` | `call_deferred("_build_music", null)` | dropped the argument |
+| `navmesh_data.gd:120` — type mismatch in `var step := …length()` | a bulk `:=` rewrite annotated `Vector2` onto a **float** result | restored `float` |
+| `navmesh_data.gd:205/206` — invalid operands (`+`) | same rewrite, `Vector2` on a scalar distance | restored scalar types |
+| cascading *"Failed to compile depended scripts"* in `navmesh_builder.gd`, `map_loader.gd`, `bot_controller.gd` | all three `preload`/use `navmesh_data.gd` | resolved by the fixes above |
+
+Two new static checks were added for the failure modes that the existing audits could not
+see, and both were validated against a deliberately broken fixture before being trusted:
+
+* **`stringcalls`** — argument count of `call()/call_deferred()/callv()/call_group()` with a
+  literal method name. These resolve at **runtime**, so a wrong count is a console error
+  rather than a parse error (exactly how `_build_music` broke). Result: **0**.
+* **`arity`** — argument count for `expr.method(...)` where the receiver's static type is
+  known from a typed `var`/parameter/return. Result: **0**.
+* **`syncheck`** — hazards no AST checker sees: backslash line continuation (**not valid
+  GDScript**; this was introduced and caught during this pass), mixed tab/space indentation.
+  Result: **0**.
+
+### 1.10 Mobile UI — measured with a layout simulator, `PASS` after fixes
+
+The stretch mode is `canvas_items` + `expand` on a 1280×720 base, so the visible play area
+is **always 720 units tall** and its width follows the device aspect ratio (a 20:9 phone
+renders 1600×720). `/tmp/analyze/ui_sim.py` reproduces that mapping and the *actual*
+drawing maths of `hud_controller`, `mobile_input_controller`, `main_menu` and
+`CBModalMenu`, then measures every control and readout at 9 resolutions
+(1280×720, 2392×1080, 2400×1080, 2340×1080, 1920×1080, 1600×720, 1024×768, 2000×1200, 2560×1440)
+with `hud_scale` at 0.75 / 1.0 / 1.4.
+
+Measured **before** the fix — this is the user's "controls cannot be touched" report:
+
+| Element | Result at every resolution |
+|---|---|
+| `JUMP` button | **100 % covered** by the fire button |
+| `ADS` button | **96 % covered** by the fire button |
+| `PAUSE` button | **88 % covered** by the fire button |
+| Health bar | behind the joystick at 5/5 resolutions |
+| `EXIT` on the main menu | **52 units below the bottom edge** (4 buttons at a fixed 118 pitch starting at 42 % height) |
+| Ammo counter | underneath the fire button |
+
+Measured **after** the fixes: off-screen 0, covered 0, HUD/menu/modal content problems 0
+across the full sweep. What changed:
+
+1. `_layout_controls()` was rewritten around named constants (`_EDGE`, `_STICK_BOX`,
+   `_FIRE_BOX`, `_BUTTON`, `_BUTTON_GAP`, `_ACTION_STACK_GAP`). The action buttons now form a
+   diagonal strip along the right edge **above** the fire button instead of underneath it,
+   with a wide-screen/narrow-screen fallback.
+2. `action_strip_rect()` / `stick_rect()` expose the areas the thumbs own. `gameplay.gd`
+   forwards them to the HUD (`touch_exclusion`, `touch_left_block`) on start-up **and** on
+   `layout_changed` (emitted after every re-layout, including rotation), so the HUD never
+   has to guess.
+3. The health bar starts after the joystick block and is width-capped; the ammo counter is
+   right-aligned to the control cluster instead of the screen edge; the kill feed stops
+   before the cluster; the scoreboard is fitted into the free band between stick and
+   buttons; the toast is clamped to the viewport.
+4. The main menu derives its button pitch from the space actually available, so all four
+   buttons (PLAY / SETTINGS / CREDITS / EXIT) fit a 720-unit-tall screen and stay ≥ 64 units.
+5. Pause/play state is now idempotent: hiding the controls no longer re-fires
+   `trigger(false)` mid-burst.
+
+Additional mobile-only defect found and fixed in this pass: when the app loses focus
+(incoming call, notification shade, app switch) Android never delivers the
+"finger released" event, so the fire button stayed pressed and the character kept walking.
+`_notification()` now clears every claimed touch on
+`NOTIFICATION_APPLICATION_(FOCUS_OUT|PAUSED)` and `NOTIFICATION_WM_WINDOW_FOCUS_OUT`.
+
 ---
 
 ## 2. Static checks that cannot catch runtime semantics
+
+**The simulator is not the engine.** It proves geometry, not rendering: it cannot show
+whether a control is *visible* (draw order, alpha, `CanvasLayer` ordering), whether the
+font actually looks readable on a 6" screen, or whether the touch hit-test agrees with the
+drawn circle. It catches "off screen" and "covered", which is what the user reported — it
+does not replace holding the phone.
 
 The validator is a parser, not an engine. It cannot prove that:
 
@@ -196,7 +289,8 @@ see below.
 | Item | Status | How to verify |
 |---|---|---|
 | Engine import of the 3 GLBs (`project.godot` open, import step) | **untested** | open the project in Godot 4.3+; the Import dock should show 3 scenes + textures with no errors. *(The 4.7.2 run reached the script-compile stage, which is after import — the GLBs did load, but their visual result has not been reviewed.)* |
-| Scene/script runtime errors (null nodes, missing signals at runtime) | **untested** — all 33 scripts now *compile*, but nothing has run | `godot --headless --path . --script res://scripts/dev/selftest.gd` |
+| Scene/script runtime errors (null nodes, missing signals at runtime) | **untested** — all 33 scripts pass the static suite and the two engine rounds found only the errors listed in §1.8b/§1.9, but nothing has *run* | `godot --headless --path . --script res://scripts/dev/selftest.gd` |
+| Touch feel (button size vs. thumb, drag-to-aim responsiveness, multitouch) | **untested** — geometry is verified by the simulator, ergonomics are not | play on the phone and report; `_BUTTON` etc. are single constants in `mobile_input_controller.gd` |
 | Actual gameplay feel (speed, recoil, TTK, bot difficulty) | **untested** | play a match on desktop, then a phone |
 | Touch input on a real touchscreen (multi-finger routing) | **untested** | `adb install` + play; specifically hold-fire-and-drag |
 | Frame rate on Android hardware | **untested** | `adb logcat`, or the built-in FPS limit setting |

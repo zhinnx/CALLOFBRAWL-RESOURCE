@@ -42,7 +42,7 @@ func _ready() -> void:
 func _ensure_bus(bus_name: String, default_db: float) -> void:
 	if AudioServer.get_bus_index(bus_name) != -1:
 		return
-	var idx = AudioServer.bus_count
+	var idx := AudioServer.bus_count
 	AudioServer.add_bus(idx)
 	AudioServer.set_bus_name(idx, bus_name)
 	AudioServer.set_bus_send(idx, BUS_MASTER)
@@ -85,7 +85,7 @@ func _build_streams() -> void:
 	# The 12 s ambience is 63 % of all synthesised samples: build it on the next idle
 	# frame so the very first screen appears instantly on a low-end phone.
 	_music_stream = null
-	call_deferred("_build_music", null)
+	call_deferred("_build_music")
 
 
 func _build_music() -> void:
@@ -116,7 +116,7 @@ func play_3d(sound: String, position: Vector3, volume_db: float = 0.0, pitch_jit
 	var stream: AudioStream = _streams.get(sound)
 	if stream == null:
 		return
-	var p = _pool[_pool_index]
+	var p := _pool[_pool_index]
 	_pool_index = (_pool_index + 1) % _pool.size()
 	p.stream = stream
 	p.global_position = position

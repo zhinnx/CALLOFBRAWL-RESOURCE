@@ -28,11 +28,19 @@ Open `project.godot` in Godot 4.3 or newer and press **F5**.
 |---|---|---|
 | Move stick | bottom-left | dynamic-origin virtual joystick, 8-direction, push past the outer ring to sprint |
 | Look | anywhere on the right / centre | drag to turn, per-axis sensitivity, vertical clamp ±85° |
-| **Fire** | bottom-right, large | hold to auto-fire; **keep the finger down and drag to aim while firing**; release stops firing |
-| ADS | right, above fire | toggle, lowers sensitivity and zooms the FOV |
-| Reload | right | starts the reload sequence, drops ADS |
-| Jump | right | only on the floor |
-| Pause | top-right | pause / restart / settings / main menu |
+| **Fire** | bottom-right corner, large | hold to auto-fire; **keep the finger down and drag to aim while firing**; release stops firing |
+| ADS | right edge, in the strip **above** the fire button | toggle, lowers sensitivity and zooms the FOV |
+| Reload | right edge, lowest of the strip | starts the reload sequence, drops ADS |
+| Jump | right edge, in the strip | only on the floor |
+| Pause | right edge, top of the strip | pause / restart / settings / main menu |
+
+The four action buttons form a diagonal strip along the right edge that ends **above** the
+fire button, so no button is ever underneath the thumb that fires. Positions come from
+named constants at the top of `scripts/mobile/mobile_input_controller.gd`
+(`_EDGE`, `_STICK_BOX`, `_FIRE_BOX`, `_BUTTON`, `_BUTTON_GAP`, `_ACTION_STACK_GAP`) — change
+those to re-tune the whole layout. The HUD reads the resulting rects through
+`stick_rect()` / `action_strip_rect()`, so the health bar, ammo counter, kill feed and
+scoreboard automatically stay clear of the controls at any aspect ratio.
 
 All controls are independent per finger (each tracks its own `InputEventScreenTouch.index`),
 so moving, aiming and firing simultaneously works. Touches that start on a button never
