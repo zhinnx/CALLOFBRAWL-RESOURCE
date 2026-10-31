@@ -64,7 +64,11 @@ also fire the weapon.
   animation stages, hit markers, muzzle flash, tracers. The same controller and asset drive
   every bot rifle.
 * **Mobile input** — see the table above; `CBMobileInputController` owns touch routing and
-  the UI is drawn with custom controls sized from the live viewport.
+  the UI is drawn with custom controls sized from the live viewport. Supports **left-handed**
+  mirroring (stick and fire cluster swap sides), releases every held touch when the app
+  loses focus (Android never sends the matching event), and re-lays out on rotation.
+  `scripts/dev/ui_layout_sim.py` measures every control and HUD readout over 9 resolutions
+  x 3 HUD scales x 2 handednesses and currently reports 0 off-screen / 0 covered.
 * **Aim assist** — `CBAimAssist`: cone + range gate, line-of-sight check, enemies only,
   gentle rotational pull capped per frame, sensitivity slowdown while tracking, toggle and
   strength in Settings.
@@ -72,6 +76,14 @@ also fire the weapon.
   and headshot marks, health bar, ammo/reserve, weapon name, reload state, hit marker,
   directional damage indicators, respawn countdown, toasts, scoreboard, pause and results
   panels.
+* **Settings** — camera/ADS sensitivity, aim assist (toggle, strength, radius, cone),
+  graphics quality, render scale, FPS limit, HUD scale, FPS overlay, volumes, player name,
+  match length, score limit, respawn delay, bot difficulty and handedness. Persisted to
+  `user://settings.cfg`; every numeric key is clamped to a legal range on load **and** on
+  write, so a stale or hand-edited config cannot produce an unusable camera or a broken UI.
+* **Restart-safe** — the HUD releases its connections into the autoloads on scene exit, the
+  match freezes behind the results screen, and respawns on the same frame are de-duplicated,
+  so match 2 behaves like match 1.
 * **Audio** — every effect and the menu ambience are synthesised at start-up
   (`scripts/core/sfx_synth.gd`, 22 050 Hz mono), so no unlicensed audio ships. Rifle,
   distant rifle, impacts, flesh, reload stages, dry fire, footsteps, jump, land, respawn,
