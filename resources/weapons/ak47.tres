@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="CBWeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/weapon_data.gd" id="1_weapon"]
+
+[resource]
+script = ExtResource("1_weapon")
+display_name = "AK-47"
+short_name = "AK47"
+magazine_size = 30
+reserve_ammo = 120
+max_reserve_ammo = 210
+damage_body = 25.0
+damage_head = 100.0
+damage_limb = 18.0
+effective_range = 45.0
+max_range = 120.0
+range_falloff = 0.55
+rounds_per_minute = 600.0
+automatic = true
+burst_count = 0
+spread_standing = 1.2
+spread_moving = 3.4
+spread_ads = 0.35
+recoil_vertical = 0.85
+recoil_horizontal = 0.35
+recoil_recovery = 7.0
+ads_zoom = 1.45
+ads_speed = 9.0
+reload_time = 2.45
+reload_empty_extra = 0.35
+equip_time = 0.55
+muzzle_sound = "rifle"
+bot_accuracy = 0.62
+bot_damage_scale = 0.75
