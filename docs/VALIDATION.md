@@ -163,6 +163,7 @@ stringcalls  -> string-call arity problems: 0
 arity        -> typed-receiver call arity problems: 0
 syncheck     -> syntax hazards: 0
 autoload     -> autoload member problems: 0
+signal_leak  -> unreleased autoload connections: 0
 ui_sim       -> layout problems: 0 over 9 resolutions x 3 hud scales
 ```
 
@@ -176,6 +177,7 @@ python3 scripts/dev/checks/stringcalls.py .
 python3 scripts/dev/checks/arity.py .
 python3 scripts/dev/checks/syncheck.py .
 python3 scripts/dev/checks/autoload_audit.py .
+python3 scripts/dev/checks/signal_leak.py .
 ```
 
 **Warning policy.** Since Godot 4.5 four warnings are errors by default regardless of
@@ -295,6 +297,26 @@ Also fixed in the AI pass:
   with `is_visible_in_tree()`. Friendly fire is still blocked in three separate places.
 * Bots now emit **footsteps** (distance-culled and only while moving on the floor) — hearing
   an approach is a core tactical cue and nine silent bots felt wrong.
+
+### 1.12 Restart / scene-change hygiene — `fixed`
+
+A TDM match is restarted from the pause menu and the results screen, so every scene node
+is destroyed and rebuilt against the four autoloads, which live forever. Two defects were
+found by reading the teardown path (both invisible in a single match, both certain to
+appear on the second one):
+
+1. **Stale autoload connections.** `hud_controller` connected `Settings.changed` and
+   `Game.kill_feed` and never disconnected. Each restart left the old HUD connected: the
+   callback fired into freed nodes and the next HUD reacted twice to every kill and every
+   setting change. `mobile_input_controller` had the same problem with `Settings.changed`.
+   Both now release their connections on `tree_exiting`. New check #11
+   (`signal_leak.py`) enforces this for all four autoloads.
+2. **Layout crashes during teardown.** `get_viewport().size_changed` was connected forever
+   and `_layout_controls()` dereferenced the controls without checking they exist. On
+   Android the viewport size changes when the app is backgrounded or the device rotates
+   during a scene change, which could fire the callback on a half-destroyed controller.
+   The handler now bails out when it is not inside the tree or the controls are missing,
+   and the connection is dropped on exit.
 
 ---
 

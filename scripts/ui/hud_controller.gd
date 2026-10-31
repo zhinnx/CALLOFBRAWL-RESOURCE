@@ -84,6 +84,17 @@ func _ready() -> void:
 	add_child(_menu)
 
 	Settings.changed.connect(_on_setting_changed)
+	tree_exiting.connect(_on_tree_exiting)
+
+
+## `Settings` and `Game` are autoloads: they outlive this HUD. Without disconnecting,
+## every restart leaves a stale connection behind that (a) fires into a freed node and
+## (b) makes the next match's HUD react twice to every kill-feed / setting change.
+func _on_tree_exiting() -> void:
+	if Settings.changed.is_connected(_on_setting_changed):
+		Settings.changed.disconnect(_on_setting_changed)
+	if Game.kill_feed.is_connected(_on_kill_feed):
+		Game.kill_feed.disconnect(_on_kill_feed)
 
 
 func bind(p: CBPlayerController, mm: CBMatchManager, input_ctrl: CBMobileInputController) -> void:

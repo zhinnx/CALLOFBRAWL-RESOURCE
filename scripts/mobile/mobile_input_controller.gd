@@ -46,12 +46,24 @@ var _sprint_hold: bool = false
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_PAUSABLE
+	tree_exiting.connect(_on_tree_exiting)
 	# The controls are 2D nodes parented to a plain Node, so they land in the root
 	# canvas layer. The HUD draws in its own CanvasLayer on top of that, which is what
 	# we want: the joystick must never be Z-ordered in front of the score/timer.
 	_build_controls()
 	_layout_controls()
 	get_viewport().size_changed.connect(_layout_controls)
+
+
+## Disconnect from the viewport signal on teardown. `size_changed` belongs to the
+## viewport, not to this node, so without this the callback can fire on a freed
+## controller during a scene change (restart / main menu) and log an access error.
+func _on_tree_exiting() -> void:
+	var vp := get_viewport()
+	if vp != null and vp.size_changed.is_connected(_layout_controls):
+		vp.size_changed.disconnect(_layout_controls)
+	if Settings.changed.is_connected(_on_settings_changed):
+		Settings.changed.disconnect(_on_settings_changed)
 
 
 func _build_controls() -> void:
@@ -106,8 +118,15 @@ func _make_button(node_name: String, icon_type: int) -> CBAdaptiveIconButton:
 ## landscape resolution without anchors (the controller is a plain Node so that it
 ## receives touches in `_input` before any Control can consume them).
 func _layout_controls() -> void:
+	# `size_changed` also fires while the scene is being torn down (scene change, app
+	# going to the background on Android) and before the controls have been built.
+	# Touching freed nodes there is an "Invalid access" error, so bail out instead.
+	if not is_inside_tree():
+		return
 	var vp := get_viewport().get_visible_rect().size
 	if vp.x <= 0.0 or vp.y <= 0.0:
+		return
+	if joystick == null or fire_button == null or btn_reload == null:
 		return
 	_scale = clampf(vp.y / 720.0, 0.62, 1.9)
 	var s := _scale
