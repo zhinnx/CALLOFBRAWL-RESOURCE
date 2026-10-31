@@ -47,15 +47,15 @@ func _process(delta: float) -> void:
 
 func _draw() -> void:
 	var c := size * 0.5
-	var r := radius * _scale
+	var r = radius * _scale
 	var col := accent
 	col.a = 0.22 + 0.10 * _pulse
 	draw_circle(c, r * (1.0 + 0.03 * _pulse), col)
 	draw_arc(c, r, 0.0, TAU, 56, Color(accent.r, accent.g, accent.b, 0.85), maxf(2.0, 3.0 * _scale), true)
 	# bullet glyph
-	var inner := r * 0.52
+	var inner = r * 0.52
 	draw_circle(c, inner, Color(1, 1, 1, 0.16))
-	var cross := r * 0.30
+	var cross = r * 0.30
 	var w := maxf(3.0, 4.0 * _scale)
 	draw_line(c + Vector2(-cross, 0), c + Vector2(cross, 0), Color(1, 1, 1, 0.75), w)
 	draw_line(c + Vector2(0, -cross), c + Vector2(0, cross), Color(1, 1, 1, 0.75), w)

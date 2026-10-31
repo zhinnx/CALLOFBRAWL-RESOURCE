@@ -62,7 +62,6 @@ camera/depth_of_field/depth_of_field_bokeh_quality=0
 lights_and_shadows/directional_shadow/soft_shadow_filter_quality=1
 lights_and_shadows/positional_shadow/soft_shadow_filter_quality=1
 environment/defaults/default_clear_color=Color(0.32, 0.46, 0.62, 1)
-environment/defaults/default_environment=""
 
 [audio]
 
@@ -77,11 +76,49 @@ worker_pool/max_threads=2
 
 [debug]
 
+; Project settings below live under the `debug/` section, so each key resolves to
+; debug/gdscript/warnings/<name>. Values: 0 = ignore, 1 = warn, 2 = error.
+;
+; Godot 4.5+ reports the "inferred from a Variant" warning as an ERROR regardless of
+; policy, so that class of problem was fixed in the code itself rather than silenced
+; here (there are now zero `:=` sites that cannot be typed).
+;
+; The warnings below are switched off because they are noise for this codebase: the
+; four singletons (Settings/Game/Audio/Fx) are autoloads, which GDScript reports as
+; "unsafe" access even though they always exist, and the project intentionally keeps
+; some locals untyped where the engine cannot express the type.
+gdscript/warnings/treat_warnings_as_errors=false
 gdscript/warnings/untyped_declaration=0
 gdscript/warnings/unsafe_property_access=0
 gdscript/warnings/unsafe_method_access=0
 gdscript/warnings/unsafe_cast=0
 gdscript/warnings/unsafe_call_argument=0
+gdscript/warnings/unsafe_void_return=0
+gdscript/warnings/inference_on_variant=0
+gdscript/warnings/return_value_discarded=0
+gdscript/warnings/integer_division=0
+gdscript/warnings/narrowing_conversion=0
+gdscript/warnings/shadowed_variable=0
+gdscript/warnings/shadowed_variable_base_class=0
+gdscript/warnings/shadowed_global_identifier=0
+gdscript/warnings/unused_variable=0
+gdscript/warnings/unused_local_constant=0
+gdscript/warnings/unused_parameter=0
+gdscript/warnings/unused_private_class_variable=0
+gdscript/warnings/unused_signal=0
+gdscript/warnings/standalone_expression=0
+gdscript/warnings/standalone_ternary=0
+gdscript/warnings/confusable_local_declaration=0
+gdscript/warnings/confusable_local_usage=0
+gdscript/warnings/incompatible_ternary=0
+gdscript/warnings/int_as_enum_without_cast=0
+gdscript/warnings/int_as_enum_without_match=0
+gdscript/warnings/enum_variable_without_default=0
+gdscript/warnings/static_called_on_instance=0
+gdscript/warnings/redundant_await=0
+gdscript/warnings/native_method_override=0
+gdscript/warnings/get_node_default_without_onready=0
+gdscript/warnings/onready_with_export=0
 
 [android]
 

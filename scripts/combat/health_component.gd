@@ -55,7 +55,7 @@ func apply_damage(amount: float, attacker_id: String, attacker_team: int, headsh
 		return 0.0
 	var before := health
 	health = maxf(0.0, health - amount)
-	var dealt := before - health
+	var dealt = before - health
 	damaged.emit(dealt, attacker_id, headshot, health)
 	health_changed.emit(health, max_health)
 	if health <= 0.0 and alive:

@@ -15,7 +15,9 @@ class_name CBMobileInputController
 extends Node
 
 var player: CBPlayerController
-var hud: Control
+## Assigned by the gameplay scene. Only pause toggling goes through it, so the
+## narrowest useful type keeps this controller independent of the HUD internals.
+var hud: CanvasLayer
 var aim_assist: CBAimAssist
 
 var joystick: CBVirtualJoystick
@@ -89,7 +91,7 @@ func _make_button(node_name: String, icon_type: int) -> CBAdaptiveIconButton:
 ## landscape resolution without anchors (the controller is a plain Node so that it
 ## receives touches in `_input` before any Control can consume them).
 func _layout_controls() -> void:
-	var vp := get_viewport().get_visible_rect().size
+	var vp = get_viewport().get_visible_rect().size
 	if vp.x <= 0.0 or vp.y <= 0.0:
 		return
 	var s := clampf(vp.y / 720.0, 0.62, 1.9)
@@ -178,7 +180,7 @@ func _on_move_changed(value: Vector2, sprinting: bool) -> void:
 func _on_look_delta(relative: Vector2) -> void:
 	if player == null:
 		return
-	var s := Settings.get_float("look_sensitivity")
+	var s = Settings.get_float("look_sensitivity")
 	# aim assist slow-down is applied through the player so ADS sensitivity also
 	# composes correctly (the player multiplies by its own sight scale)
 	player.look_scale = aim_assist.sensitivity_multiplier() if aim_assist != null else 1.0

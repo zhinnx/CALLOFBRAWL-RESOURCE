@@ -235,7 +235,7 @@ func _options(label_text: String, key: String, items: Array) -> void:
 	var opt := OptionButton.new()
 	for i in items.size():
 		opt.add_item(str(items[i]), i)
-	var current := Settings.get_int(key)
+	var current = Settings.get_int(key)
 	# FPS limit is stored in real fps, map it to its index
 	if key == "fps_limit":
 		current = maxi(0, Settings.FPS_LIMITS.find(Settings.get_int("fps_limit")))

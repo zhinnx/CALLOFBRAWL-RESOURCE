@@ -82,6 +82,12 @@ var _stuck_timer: float = 0.0
 var _last_position: Vector3 = Vector3.ZERO
 var _shots_fired: int = 0
 var _cover_point: Vector3 = Vector3.ZERO
+
+## Difficulty tables (index = bot_difficulty 0..2). Typed so no Variant leaks into maths.
+const ACCURACY_BY_TIER: Array[float] = [0.42, 0.62, 0.78]
+const REACTION_BY_TIER: Array[float] = [0.62, 0.38, 0.24]
+## Z coordinate roughly bisecting the two spawns; used to bias patrols towards the enemy.
+const MAP_MID_Z: float = 1215.0
 var _aim_error: Vector3 = Vector3.ZERO
 var _aim_error_timer: float = 0.0
 var _spawn_yaw: float = 0.0
@@ -171,8 +177,9 @@ func configure(id: String, bot_name: String, bot_team: int, difficulty: int) -> 
 ## Difficulty 0 easy / 1 normal / 2 hard. Each bot also gets personal jitter so no
 ## two bots behave identically.
 func retune(difficulty: int) -> void:
-	var base_acc := [0.42, 0.62, 0.78][clampi(difficulty, 0, 2)]
-	var base_react := [0.62, 0.38, 0.24][clampi(difficulty, 0, 2)]
+	var tier: int = clampi(difficulty, 0, 2)
+	var base_acc: float = ACCURACY_BY_TIER[tier]
+	var base_react: float = REACTION_BY_TIER[tier]
 	accuracy = clampf(base_acc + randf_range(-0.10, 0.12), 0.2, 0.94)
 	reaction_time = clampf(base_react + randf_range(-0.09, 0.16), 0.12, 0.9)
 	aggression = randf_range(0.25, 1.0)
@@ -256,7 +263,7 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 	_check_stuck(delta)
 	if visual:
-		var speed := Vector2(velocity.x, velocity.z).length()
+		var speed: float = Vector2(velocity.x, velocity.z).length()
 		visual.animate(delta, speed, is_on_floor(), velocity.y)
 		if _target != null and _target is Node3D:
 			visual.face_towards((_target as Node3D).global_position, delta)
@@ -280,7 +287,7 @@ func _find_best_visible_enemy() -> Node3D:
 	var best: Node3D = null
 	var best_score := -1.0
 	var origin := global_position + Vector3(0, 1.55, 0)
-	var forward := -global_transform.basis.z
+	var forward = -global_transform.basis.z
 	var cos_fov := cos(deg_to_rad(fov_degrees * 0.5))
 	for node in get_tree().get_nodes_in_group(Game.GROUP_COMBATANT):
 		if node == self:
@@ -294,16 +301,16 @@ func _find_best_visible_enemy() -> Node3D:
 		if CBTeam.is_friendly(hc.team, team):
 			continue
 		var to := (n3.global_position + Vector3(0, 1.2, 0)) - origin
-		var dist := to.length()
+		var dist: float = to.length()
 		if dist > vision_range or dist < 0.5:
 			continue
-		var dir := to / dist
+		var dir = to / dist
 		if forward.dot(dir) < cos_fov and dist > 6.0:
 			continue
 		if not _has_line_of_sight(origin, n3):
 			continue
 		# closer + more in front is better; low health enemies get priority
-		var score := (1.0 - dist / vision_range) * 1.4 + forward.dot(dir) * 0.6
+		var score = (1.0 - dist / vision_range) * 1.4 + forward.dot(dir) * 0.6
 		if hc.health_fraction() < 0.4:
 			score += 0.25
 		if score > best_score:
@@ -325,7 +332,7 @@ func _has_line_of_sight(origin: Vector3, target: Node3D) -> bool:
 		var q := PhysicsRayQueryParameters3D.create(origin, p, CBMapLoader.LAYER_WORLD)
 		q.collide_with_areas = false
 		q.collide_with_bodies = true
-		var hit := space.intersect_ray(q)
+		var hit = space.intersect_ray(q)
 		if hit.is_empty():
 			return true
 	return false
@@ -349,7 +356,7 @@ func _move_towards(target_pos: Vector3, speed: float, delta: float) -> void:
 
 	# skip waypoints we are already past
 	while path_next_index < _path.size():
-		var wp := _path[path_next_index]
+		var wp = _path[path_next_index]
 		if Vector2(wp.x - global_position.x, wp.z - global_position.z).length() <= WAYPOINT_REACHED:
 			path_next_index += 1
 		else:
@@ -397,7 +404,7 @@ func path_remaining() -> int:
 
 
 func _slow_stop(delta: float) -> void:
-	var horizontal := Vector3(velocity.x, 0.0, velocity.z).move_toward(Vector3.ZERO, 22.0 * delta)
+	var horizontal = Vector3(velocity.x, 0.0, velocity.z).move_toward(Vector3.ZERO, 22.0 * delta)
 	velocity.x = horizontal.x
 	velocity.z = horizontal.z
 
@@ -408,11 +415,11 @@ func _pick_patrol_point() -> Vector3:
 		return global_position
 	# Prefer points that are towards the middle of the map / enemy side.
 	var enemy_side := 1.0 if team == CBTeam.ALPHA else -1.0
-	var best := pois[randi() % pois.size()]
+	var best: Vector3 = pois[randi() % pois.size()]
 	for i in 5:
 		var candidate: Vector3 = pois[randi() % pois.size()]
-		var score := (candidate.z - 1215.0) * enemy_side * -0.02 + randf() * 0.6
-		var best_score := (best.z - 1215.0) * enemy_side * -0.02
+		var score = (candidate.z - MAP_MID_Z) * enemy_side * -0.02 + randf() * 0.6
+		var best_score: float = (best.z - MAP_MID_Z) * enemy_side * -0.02
 		if score > best_score:
 			best = candidate
 	return best
@@ -465,22 +472,22 @@ func _tick_engage(delta: float) -> void:
 		_target = null
 		return
 	var to := enemy.global_position - global_position
-	var dist := Vector2(to.x, to.z).length()
-	var full_dist := to.length()
+	var dist: float = Vector2(to.x, to.z).length()
+	var full_dist: float = to.length()
 
 	# look at the enemy (visual) and aim the weapon
 	if visual:
 		visual.face_towards(enemy.global_position, delta)
 
 	# movement decision: keep preferred range, strafe, or chase
-	var moving := false
+	var moving: bool = false
 	if dist > preferred_range * 1.35 and aggression > 0.35:
 		_move_towards(enemy.global_position, CHASE_SPEED, delta)
 		moving = true
 	elif dist < preferred_range * 0.55:
 		# back off while firing
-		var away := (global_position - enemy.global_position).normalized()
-		var back := global_position + away * 6.0
+		var away = (global_position - enemy.global_position).normalized()
+		var back = global_position + away * 6.0
 		_move_towards(back, WALK_SPEED, delta)
 		moving = true
 	else:
@@ -491,8 +498,8 @@ func _tick_engage(delta: float) -> void:
 			if randf() < 0.22:
 				_strafe_dir = 0.0
 		if _strafe_dir != 0.0:
-			var side := Vector3(-to.z, 0.0, to.x).normalized() * _strafe_dir
-			var goal := global_position + side * 4.0
+			var side = Vector3(-to.z, 0.0, to.x).normalized() * _strafe_dir
+			var goal = global_position + side * 4.0
 			_move_towards(goal, WALK_SPEED * 0.9, delta)
 			moving = true
 		else:
@@ -559,14 +566,14 @@ func _friendly_in_line(enemy: Node3D) -> bool:
 ## Fires one round. Bots do not use perfect aim: a fraction of shots are "misses"
 ## which are sent at an offset direction, so the player sees near-misses.
 func _shoot_at(enemy: Node3D, hit_chance: float, dist: float) -> void:
-	var muzzle := visual.muzzle_position() if visual else global_position
+	var muzzle = visual.muzzle_position() if visual else global_position
 	var aim_point := enemy.global_position + Vector3(0, 1.2, 0)
 	# strafing bots lead slightly; add distance-dependent jitter
-	var dir := (aim_point - muzzle).normalized()
+	var dir = (aim_point - muzzle).normalized()
 	var will_hit := randf() < hit_chance
 	if not will_hit:
 		var spread := deg_to_rad(randf_range(3.0, 9.0))
-		var axis := Vector3(randf_range(-1, 1), randf_range(-0.6, 0.6), randf_range(-1, 1)).normalized()
+		var axis = Vector3(randf_range(-1, 1), randf_range(-0.6, 0.6), randf_range(-1, 1)).normalized()
 		dir = (dir + axis * tan(spread)).normalized()
 	_aim_error = dir
 	_shots_fired += 1
@@ -585,13 +592,13 @@ func fire_bot_hitscan(enemy: Node3D, muzzle: Vector3, dir: Vector3, will_hit: bo
 	if space == null:
 		return
 	var max_range: float = weapon.data.max_range if weapon.data else 120.0
-	var end := muzzle + dir * max_range
+	var end = muzzle + dir * max_range
 	var q := PhysicsRayQueryParameters3D.create(muzzle, end,
 			CBMapLoader.LAYER_WORLD | CBMapLoader.LAYER_COMBATANT)
 	q.collide_with_areas = true
 	q.collide_with_bodies = true
-	var hit := space.intersect_ray(q)
-	var point := end
+	var hit = space.intersect_ray(q)
+	var point = end
 	var victim: Node = null
 	if not hit.is_empty():
 		point = hit.get("position", end)
@@ -620,7 +627,7 @@ func fire_bot_hitscan(enemy: Node3D, muzzle: Vector3, dir: Vector3, will_hit: bo
 	var base: float = weapon.data.damage_head if headshot else weapon.data.damage_body
 	var dmg: float = base * clampf(1.2 - point.distance_to(muzzle) / 90.0, 0.5, 1.0)
 	dmg *= weapon.data.bot_damage_scale
-	var dealt := hc.apply_damage(dmg, combatant_id, team, headshot)
+	var dealt = hc.apply_damage(dmg, combatant_id, team, headshot)
 	if dealt > 0.0:
 		Fx.spawn_blood(point, dir * -1.0)
 		Audio.play_3d("impact_flesh", point, -8.0, 0.1, 30.0)
@@ -633,7 +640,7 @@ func _combatant_of(hitbox: Node) -> Node:
 		if cur.is_in_group(Game.GROUP_COMBATANT):
 			return cur
 		cur = cur.get_parent()
-	var direct := get_tree().get_nodes_in_group(Game.GROUP_COMBATANT)
+	var direct = get_tree().get_nodes_in_group(Game.GROUP_COMBATANT)
 	for n in direct:
 		if n == hitbox:
 			return n
@@ -663,7 +670,7 @@ func _tick_retreat(delta: float) -> void:
 	away = away.normalized()
 	var dir_sign := _strafe_dir if _strafe_dir != 0.0 else 1.0
 	var side := Vector3(-away.z, 0.0, away.x) * dir_sign
-	var goal := global_position + away * 9.0 + side * 4.0
+	var goal = global_position + away * 9.0 + side * 4.0
 	_cover_point = goal
 	_move_towards(goal, RETREAT_SPEED, delta)
 	if _state_timer > 2.4:
@@ -675,7 +682,7 @@ func _tick_retreat(delta: float) -> void:
 func _check_stuck(delta: float) -> void:
 	if state == State.IDLE or state == State.RELOAD:
 		return
-	var moved := global_position.distance_to(_last_position)
+	var moved: float = global_position.distance_to(_last_position)
 	if moved < 0.05 and Vector2(velocity.x, velocity.z).length() > 1.0:
 		_stuck_timer += delta
 	else:
@@ -766,7 +773,7 @@ func _on_died(attacker_id: String, headshot: bool) -> void:
 			(child as CollisionShape3D).set_deferred("disabled", true)
 		elif child is Area3D:
 			(child as Area3D).set_deferred("monitorable", false)
-	var timer := get_tree().create_timer(2.4)
+	var timer = get_tree().create_timer(2.4)
 	timer.timeout.connect(_finish_death)
 
 
@@ -789,7 +796,7 @@ func on_respawn(pos: Vector3, yaw: float) -> void:
 
 
 func state_name() -> String:
-	var keys := State.keys()
+	var keys = State.keys()
 	return str(keys[state]) if state >= 0 and state < keys.size() else "?"
 
 

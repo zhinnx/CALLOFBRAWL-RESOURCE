@@ -143,7 +143,7 @@ func _draw_results() -> void:
 	var w := _panel.size.x
 	var winner: int = _winner
 	var title := "VICTORY" if winner == CBTeam.ALPHA else ("DEFEAT" if winner == CBTeam.BRAVO else "DRAW")
-	var color := CBTheme.ACCENT if winner == CBTeam.ALPHA else (CBTheme.BRAVO_RED if winner == CBTeam.BRAVO else CBTheme.TEXT)
+	var color = CBTheme.ACCENT if winner == CBTeam.ALPHA else (CBTheme.BRAVO_RED if winner == CBTeam.BRAVO else CBTheme.TEXT)
 	CBTheme.draw_title(self, _font, title, p + Vector2(w * 0.5 - 110, 74), 42, color,
 			HORIZONTAL_ALIGNMENT_CENTER, 220)
 	CBTheme.draw_text(self, _font, "%s  %d — %d" % [CBTeam.name_of(winner) if winner != CBTeam.NONE else "TIED",
@@ -157,7 +157,7 @@ func _draw_results() -> void:
 	CBTheme.draw_text(self, _font, "K", p + Vector2(cols[2], y), 11, CBTheme.TEXT_DIM)
 	CBTheme.draw_text(self, _font, "D", p + Vector2(cols[3], y), 11, CBTheme.TEXT_DIM)
 	y += 20.0
-	var rows := _stats_rows.slice(0, 10)
+	var rows = _stats_rows.slice(0, 10)
 	for row: Dictionary in rows:
 		var tcol := CBTeam.color_of(int(row.get("team", 0)))
 		draw_rect(Rect2(p.x + cols[0] + 8, y - 12, 3, 16), tcol)

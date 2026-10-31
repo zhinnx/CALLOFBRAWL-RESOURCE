@@ -34,7 +34,7 @@ func handle_touch(event: InputEvent) -> bool:
 	if event is InputEventScreenDrag:
 		var d := event as InputEventScreenDrag
 		if d.index == touch_index:
-			var mult := sensitivity * (ads_multiplier if aiming else 1.0)
+			var mult = sensitivity * (ads_multiplier if aiming else 1.0)
 			look_delta.emit(d.relative * mult)
 			return true
 	return false

@@ -59,14 +59,14 @@ func _build_collision(root: Node) -> void:
 	body.collision_mask = 0
 	add_child(body)
 	var shapes := 0
-	var body_inv := body.global_transform.affine_inverse()
+	var body_inv = body.global_transform.affine_inverse()
 	for node in root.find_children("*", "MeshInstance3D", true, false):
 		var mi := node as MeshInstance3D
 		if mi == null or mi.mesh == null:
 			continue
 		# the exported GLB nests every wall under scaled/translated nodes, so the
 		# collision shape must use the *global* transform of the mesh instance
-		var shape := mi.mesh.create_trimesh_shape()
+		var shape = mi.mesh.create_trimesh_shape()
 		if shape == null:
 			continue
 		var cs := CollisionShape3D.new()
@@ -85,7 +85,7 @@ func _build_safety_floor(root: Node) -> void:
 	var bounds := _bounds_of(root)
 	if bounds.size == Vector3.ZERO:
 		return
-	var min_y := bounds.position.y - 1.5
+	var min_y = bounds.position.y - 1.5
 	var floor_body := StaticBody3D.new()
 	floor_body.name = "SafetyFloor"
 	floor_body.collision_layer = LAYER_WORLD
@@ -102,12 +102,12 @@ func _build_safety_floor(root: Node) -> void:
 
 func _bounds_of(root: Node) -> AABB:
 	var acc := AABB()
-	var first := true
+	var first: bool = true
 	for node in root.find_children("*", "MeshInstance3D", true, false):
 		var mi := node as MeshInstance3D
 		if mi == null or mi.mesh == null:
 			continue
-		var box := mi.global_transform * mi.mesh.get_aabb()
+		var box = mi.global_transform * mi.mesh.get_aabb()
 		acc = box if first else acc.merge(box)
 		first = false
 	return acc
@@ -184,7 +184,7 @@ func _snap_to_floor(point: Vector3, height_above: float) -> Vector3:
 	var from := Vector3(point.x, point.y + 3.0, point.z)
 	var to := Vector3(point.x, point.y - 6.0, point.z)
 	var query := PhysicsRayQueryParameters3D.create(from, to, LAYER_WORLD)
-	var hit := space.intersect_ray(query)
+	var hit = space.intersect_ray(query)
 	if hit.is_empty():
 		return Vector3.INF
 	var pos: Vector3 = hit.get("position", Vector3.ZERO)
@@ -193,8 +193,8 @@ func _snap_to_floor(point: Vector3, height_above: float) -> Vector3:
 
 ## Random spawn point for a team that is clear of other combatants.
 func pick_spawn(team: int, avoid: Array[Node3D]) -> Vector3:
-	var count := CBNavMeshData.spawn_points(team).size()
-	var offset := randi() % maxi(1, count)
+	var count = CBNavMeshData.spawn_points(team).size()
+	var offset = randi() % maxi(1, count)
 	var space := get_world_3d().direct_space_state
 	for i in count:
 		var pos := resolve_spawn(team, offset + i)
@@ -245,5 +245,5 @@ func _capsule_space_free(pos: Vector3) -> bool:
 	params.collision_mask = LAYER_WORLD | LAYER_COMBATANT
 	params.collide_with_areas = false
 	params.collide_with_bodies = true
-	var hits := space.intersect_shape(params, 1)
+	var hits = space.intersect_shape(params, 1)
 	return hits.is_empty()

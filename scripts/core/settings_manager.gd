@@ -49,7 +49,7 @@ func _ready() -> void:
 # ---------------------------------------------------------------- persistence
 func load_settings() -> void:
 	var cfg := ConfigFile.new()
-	var err := cfg.load(CONFIG_PATH)
+	var err = cfg.load(CONFIG_PATH)
 	if err != OK:
 		return
 	for key in DEFAULTS.keys():

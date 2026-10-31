@@ -83,18 +83,18 @@ func _pick_target() -> void:
 		var hc: CBHealthComponent = node.get("health_component") as CBHealthComponent
 		if hc == null or not hc.is_alive():
 			continue
-		var to := (node.global_position + Vector3(0, 1.2, 0)) - origin
-		var dist := to.length()
+		var to = (node.global_position + Vector3(0, 1.2, 0)) - origin
+		var dist: float = to.length()
 		if dist > radius or dist < 0.4:
 			continue
-		var dir := to / dist
-		var dot := forward.dot(dir)
+		var dir = to / dist
+		var dot = forward.dot(dir)
 		if dot < cos_limit:
 			continue
 		if not _visible(node, origin):
 			continue
 		# prefer targets near the crosshair, then near ones
-		var score := dot * 2.0 - dist / radius
+		var score = dot * 2.0 - dist / radius
 		if score > best_score:
 			best_score = score
 			best = node
@@ -105,14 +105,14 @@ func _pick_target() -> void:
 
 
 func _visible(target: Node3D, origin: Vector3) -> bool:
-	var space := camera.get_world_3d().direct_space_state
+	var space = camera.get_world_3d().direct_space_state
 	if space == null:
 		return false
 	var points := [target.global_position + Vector3(0, 1.2, 0), target.global_position + Vector3(0, 0.6, 0)]
 	for p: Vector3 in points:
 		var q := PhysicsRayQueryParameters3D.create(origin, p, CBMapLoader.LAYER_WORLD)
 		q.collide_with_areas = false
-		var hit := space.intersect_ray(q)
+		var hit = space.intersect_ray(q)
 		if hit.is_empty():
 			return true
 	return false
@@ -146,12 +146,12 @@ func rotation_assist() -> Vector2:
 	var want_pitch := atan2(to.y, Vector2(to.x, to.z).length())
 	var basis := camera.global_transform.basis
 	var cur_yaw := atan2(-basis.z.x, -basis.z.z)
-	var cur_pitch := asin(clampf(basis.z.y, -1.0, 1.0)) * -1.0
+	var cur_pitch = asin(clampf(basis.z.y, -1.0, 1.0)) * -1.0
 	var d_yaw := wrapf(want_yaw - cur_yaw, -PI, PI)
 	var d_pitch := wrapf(want_pitch - cur_pitch, -PI, PI)
 	if absf(d_yaw) > deg_to_rad(cone_fov * 1.6) or absf(d_pitch) > deg_to_rad(cone_fov * 1.6):
 		return Vector2.ZERO
-	var gain := deg_to_rad(MAX_ASSIST_DEG_PER_FRAME) * strength
+	var gain = deg_to_rad(MAX_ASSIST_DEG_PER_FRAME) * strength
 	var yaw_step := clampf(d_yaw * 0.25, -gain, gain)
 	var pitch_step := clampf(d_pitch * 0.25, -gain, gain)
 	# Both deltas are in "camera" space; CBPlayerController.add_look expects screen

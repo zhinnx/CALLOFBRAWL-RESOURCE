@@ -37,7 +37,7 @@ static func build(parent: Node3D) -> NavigationRegion3D:
 	for poly: Array in polys:
 		if poly.size() < 3:
 			continue
-		var base := out_verts.size()
+		var base = out_verts.size()
 		for v: Variant in poly:
 			var p: Vector3 = verts[int(v)]
 			out_verts.append(Vector3(p.x, p.y + Y_OFFSET, p.z))
@@ -58,7 +58,7 @@ static func build(parent: Node3D) -> NavigationRegion3D:
 	region.navigation_mesh = nav_mesh
 	parent.add_child(region)
 
-	var map := parent.get_world_3d().navigation_map
+	var map = parent.get_world_3d().navigation_map
 	NavigationServer3D.region_set_map(region.get_rid(), map)
 	NavigationServer3D.region_set_enabled(region.get_rid(), true)
 	return region

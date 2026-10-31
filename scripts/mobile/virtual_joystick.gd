@@ -43,7 +43,7 @@ func _on_resized() -> void:
 
 
 func _draw() -> void:
-	var r := radius * _scale
+	var r = radius * _scale
 	draw_circle(_centre, r, base_color)
 	draw_arc(_centre, r, 0.0, TAU, 48, ring_color, maxf(1.5, 2.0 * _scale), true)
 	draw_arc(_centre, r * sprint_threshold, 0.0, TAU, 40, Color(1, 1, 1, 0.10), maxf(1.0, 1.5 * _scale), true)
@@ -95,26 +95,26 @@ func _to_local(p: Vector2) -> Vector2:
 
 
 func _accepts_point(p: Vector2) -> bool:
-	var r := radius * _scale * 1.8
+	var r = radius * _scale * 1.8
 	return (_to_local(p) - size * 0.5).length() <= r
 
 
 ## Keeps the dynamic origin (and therefore the whole stick) inside this control.
 func _clamp_centre(local_point: Vector2) -> Vector2:
-	var m := radius * _scale
+	var m = radius * _scale
 	return Vector2(clampf(local_point.x, m, maxf(m, size.x - m)),
 			clampf(local_point.y, m, maxf(m, size.y - m)))
 
 
 func _update_from_point(screen_point: Vector2) -> void:
 	var delta := _to_local(screen_point) - _centre
-	var limit := radius * _scale
-	var len := delta.length()
+	var limit = radius * _scale
+	var len: float = delta.length()
 	if len > limit and len > 0.001:
 		delta = delta / len * limit
 	_grip = _centre + delta
-	var norm := delta / maxf(1.0, limit)
-	var mag := norm.length()
+	var norm = delta / maxf(1.0, limit)
+	var mag: float = norm.length()
 	if mag < dead_zone:
 		value = Vector2.ZERO
 		sprinting = false

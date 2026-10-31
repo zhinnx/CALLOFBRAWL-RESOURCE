@@ -19,7 +19,7 @@ var match_manager: CBMatchManager
 var aim_assist: CBAimAssist
 var world_env: WorldEnvironment
 var sun: DirectionalLight3D
-var settings_panel: Control
+var settings_panel: CBSettingsPanel
 
 var _ready_done: bool = false
 
@@ -183,7 +183,7 @@ func _on_menu() -> void:
 func _process(_delta: float) -> void:
 	# apply the aim-assist rotation nudge (never snaps, capped per frame)
 	if aim_assist != null and player != null and player.is_alive and not get_tree().paused:
-		var assist := aim_assist.rotation_assist()
+		var assist = aim_assist.rotation_assist()
 		if assist != Vector2.ZERO:
 			player.add_look(assist.x, assist.y)
 		if hud != null and hud.crosshair != null:

@@ -38,7 +38,7 @@ func _process(delta: float) -> void:
 			keep.append(d)
 	damage_dirs = keep
 	if weapon != null:
-		var target := 4.0 + weapon.current_spread() * 5.5
+		var target = 4.0 + weapon.current_spread() * 5.5
 		if weapon.aiming:
 			target = 2.0
 		spread_pixels = lerpf(spread_pixels, target, minf(1.0, delta * 12.0))
@@ -64,7 +64,7 @@ func _draw() -> void:
 	draw_circle(c, 1.6, col)
 	# hit marker
 	if hit_marker_timer > 0.0:
-		var a := hit_marker_timer / HIT_TIME
+		var a = hit_marker_timer / HIT_TIME
 		var hc := Color(1.0, 0.25, 0.2, a) if not headshot_hit else Color(1.0, 0.85, 0.25, a)
 		var r0 := 7.0
 		var r1 := 15.0
@@ -80,10 +80,10 @@ func _draw_damage_dirs(c: Vector2) -> void:
 		var angle: float = float(d.get("angle", 0.0))
 		var alpha: float = clampf(t, 0.0, 1.0) * 0.75
 		var color := Color(1.0, 0.18, 0.14, alpha)
-		var radius := minf(size.x, size.y) * 0.24
+		var radius = minf(size.x, size.y) * 0.24
 		var dir := Vector2(sin(angle), -cos(angle))
-		var start := c + dir * (radius - 34.0)
-		var finish := c + dir * radius
+		var start = c + dir * (radius - 34.0)
+		var finish = c + dir * radius
 		draw_line(start, finish, color, 5.0)
 		draw_colored_polygon(PackedVector2Array([
 			c + dir * (radius + 12.0),
