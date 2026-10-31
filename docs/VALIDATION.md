@@ -258,6 +258,12 @@ across the full sweep. What changed:
    buttons (PLAY / SETTINGS / CREDITS / EXIT) fit a 720-unit-tall screen and stay ≥ 64 units.
 5. Pause/play state is now idempotent: hiding the controls no longer re-fires
    `trigger(false)` mid-burst.
+6. `left_handed` existed in the settings file and did nothing. It now mirrors the whole
+   cluster (stick to the right, fire button and action strip to the left) and re-lays out
+   live when toggled. The sweep runs **both** handednesses: mirroring exposed two further
+   overlaps (the health bar landed on the fire button, the scoreboard overlapped the stick)
+   which are fixed by anchoring the readouts to whichever edge the stick is *not* on
+   (`touch_left_block` / `touch_right_block`). Both modes are now 0 problems.
 
 Additional mobile-only defect found and fixed in this pass: when the app loses focus
 (incoming call, notification shade, app switch) Android never delivers the

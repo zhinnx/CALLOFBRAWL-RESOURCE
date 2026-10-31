@@ -131,25 +131,33 @@ func _layout_controls() -> void:
 	_scale = clampf(vp.y / 720.0, 0.62, 1.9)
 	var s := _scale
 
-	# --- movement stick, bottom-left. SQUARE control whose size is twice the radius,
-	#     so the dynamic origin has room and the drawn ring never leaves the box.
+	# --- left/right handedness. `left_handed` mirrors the whole cluster: the stick moves
+	#     to the right and the fire button plus the action strip move to the left, so a
+	#     left-thumbed player can aim and fire with the right thumb. Setting it is a
+	#     preference, but it is applied here rather than being a dead toggle.
+	var mirrored := Settings.get_bool("left_handed")
+	var stick_x := vp.x - _EDGE * s - _STICK_BOX * s if mirrored else _EDGE * s
+	var cluster_right := (_EDGE * s + _FIRE_BOX * s) if mirrored else (vp.x - _EDGE * s)
+
+	# --- movement stick. SQUARE control whose size is twice the radius, so the dynamic
+	#     origin has room and the drawn ring never leaves the box.
 	joystick.size = Vector2(_STICK_BOX * s, _STICK_BOX * s)
 	joystick.radius = _STICK_RADIUS * s
-	joystick.position = Vector2(_EDGE * s, vp.y - _EDGE * s - joystick.size.y)
+	joystick.position = Vector2(stick_x, vp.y - _EDGE * s - joystick.size.y)
 
-	# --- fire button, bottom-right, sized to reach with a thumb without covering
-	#     anything else.
+	# --- fire button, sized to reach with a thumb without covering anything else.
 	fire_button.size = Vector2(_FIRE_BOX * s, _FIRE_BOX * s)
 	fire_button.radius = _FIRE_RADIUS * s
-	fire_button.position = Vector2(vp.x - _EDGE * s - fire_button.size.x,
+	fire_button.position = Vector2(cluster_right - fire_button.size.x,
 			vp.y - _EDGE * s - fire_button.size.y)
 
-	# --- action buttons: a diagonal strip along the right edge, ABOVE the fire button.
-	#     Every one of them must stay clear of the fire control: a fire button that
-	#     covers ADS/JUMP/PAUSE makes them untouchable (that was the original bug).
+	# --- action buttons: a diagonal strip along the same edge as the fire button,
+	#     ABOVE it. Every one of them must stay clear of the fire control: a fire
+	#     button that covers ADS/JUMP/PAUSE makes them untouchable (that was the
+	#     original bug).
 	var btn := _BUTTON * s
 	var gap := _BUTTON_GAP * s
-	var right_x := vp.x - _EDGE * s - btn
+	var right_x := cluster_right - btn
 	var y := fire_button.position.y - _ACTION_STACK_GAP * s
 	var stack := [btn_pause, btn_jump, btn_ads, btn_reload]
 	for i in stack.size():
@@ -162,9 +170,19 @@ func _layout_controls() -> void:
 		c.pivot_offset = c.size * 0.5
 		y -= gap
 
-	# --- keep the ADS/reload strip from colliding with the stick on very short screens
-	var lowest_action_x := right_x
-	if lowest_action_x - (joystick.position.x + joystick.size.x) < gap:
+	# --- keep the action strip from colliding with the stick on very short screens:
+	#     measure the real horizontal gap between the two clusters whichever side they
+	#     are on, and lift the strip when there is none.
+	var stick_left := joystick.position.x
+	var stick_right := joystick.position.x + joystick.size.x
+	var strip_left := right_x
+	var strip_right := right_x + btn
+	var horizontal_gap := 0.0
+	if strip_right <= stick_left:
+		horizontal_gap = stick_left - strip_right
+	elif stick_right <= strip_left:
+		horizontal_gap = strip_left - stick_right
+	if horizontal_gap < gap:
 		# not enough horizontal room (very narrow window): lift the strip instead
 		var lift := gap * 2.0
 		for c in stack:
@@ -311,6 +329,10 @@ func _on_pause() -> void:
 func _on_settings_changed(key: String, _value: Variant) -> void:
 	if aim_assist != null and key.begins_with("aim_assist"):
 		aim_assist.refresh_settings()
+	# Switching handedness while the match runs must move the controls immediately,
+	# not on the next rotation.
+	if key == "left_handed":
+		_layout_controls()
 	if look_area != null:
 		look_area.sensitivity = Settings.get_float("look_sensitivity")
 		# ADS sensitivity is applied by the player (it composes with aim assist), so the

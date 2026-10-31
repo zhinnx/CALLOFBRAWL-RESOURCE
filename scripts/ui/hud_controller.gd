@@ -41,6 +41,8 @@ var _hud_scale: float = 1.0
 ## laid out around it so nothing ends up underneath a thumb.
 var touch_exclusion: Rect2 = Rect2()
 var touch_left_block: float = 0.0
+## Width reserved by the controls on the right edge (non-zero in left-handed mode).
+var touch_right_block: float = 0.0
 var _font: Font
 var _show_scoreboard_timer: float = 0.0
 var _zoom_hint_timer: float = 0.0
@@ -439,14 +441,20 @@ func _paint_bottom(ci: CanvasItem, vp: Vector2, s: float) -> void:
 	#     positioned relative to the control cluster instead of the screen edges.
 	#     `_right_limit` is the left edge of the fire/action cluster: everything to
 	#     the right of it belongs to the controls.
-	var right_limit := w - 30.0 * s
+	var right_limit := w - 30.0 * s - touch_right_block
 	if touch_exclusion.size.x > 0.0 and touch_exclusion.position.x > w * 0.45:
 		right_limit = touch_exclusion.position.x - 16.0 * s
+	right_limit = maxf(right_limit, w * 0.35)
 
-	# health bar (bottom left, after the joystick block)
+	# health bar: on the side that the movement stick is NOT on. In left-handed mode the
+	# stick owns the right edge, and anchoring the bar on the left would put it straight
+	# on top of the fire button.
 	var hp := player.health_component.health_fraction()
+	var hw := clampf(w * 0.30, 110.0 * s, 240.0 * s)
 	var hx := maxf(28.0 * s, touch_left_block + 16.0 * s)
-	var hw := clampf(minf(minf(w * 0.30, 240.0 * s), right_limit - 20.0 * s - hx), 110.0 * s, 240.0 * s)
+	if touch_right_block > 0.0:
+		hx = maxf(28.0 * s, w - touch_right_block - 16.0 * s - hw)
+	hw = clampf(minf(hw, right_limit - 20.0 * s - hx), 90.0 * s, 240.0 * s)
 	var hy := h - 52.0 * s
 	var hh := 16.0 * s
 	ci.draw_rect(Rect2(hx, hy, hw, hh), Color(0, 0, 0, 0.5))
@@ -518,9 +526,13 @@ func _paint_scoreboard(ci: CanvasItem, vp: Vector2, s: float, alpha: float) -> v
 	# into the free band between the stick (left) and the control cluster (right);
 	# when that band is narrow the board shrinks instead of overlapping a control.
 	var band_left := touch_left_block + 10.0 * s
-	var band_right := vp.x - 26.0 * s
+	var band_right := vp.x - 26.0 * s - touch_right_block
 	if touch_exclusion.size.x > 0.0 and touch_exclusion.position.x > vp.x * 0.45:
 		band_right = touch_exclusion.position.x - 10.0 * s
+	elif touch_exclusion.size.x > 0.0:
+		# mirrored layout: the cluster hugs the LEFT edge, so the free band starts past it
+		band_left = maxf(band_left, touch_exclusion.position.x + touch_exclusion.size.x + 10.0 * s)
+	band_right = maxf(band_right, band_left + 200.0 * s)
 	var w := clampf(band_right - band_left, 220.0 * s, minf(620.0 * s, vp.x * 0.86))
 	var board_x := clampf(vp.x * 0.5 - w * 0.5, band_left, maxf(band_left, band_right - w))
 	# 10 combatants do not fit on a 720-unit-tall phone if the row height is fixed,

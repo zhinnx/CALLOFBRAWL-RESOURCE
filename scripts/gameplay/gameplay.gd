@@ -171,8 +171,13 @@ func _on_pause_toggled(paused: bool) -> void:
 func _sync_hud_exclusion() -> void:
 	if hud == null or mobile_input == null:
 		return
+	# The stick is only on the left in right-handed mode; in left-handed mode the HUD
+	# must keep clear of the *left* edge instead of the right one.
 	var stick := mobile_input.stick_rect()
-	hud.touch_left_block = stick.size.x + stick.position.x
+	var mirrored := Settings.get_bool("left_handed")
+	hud.touch_left_block = 0.0 if mirrored else stick.size.x + stick.position.x
+	# Width, in viewport units, that the HUD must leave free on the right edge.
+	hud.touch_right_block = (get_viewport().get_visible_rect().size.x - stick.position.x) if mirrored else 0.0
 	var strip := mobile_input.action_strip_rect()
 	var fire := mobile_input.fire_button
 	var fire_rect := Rect2(fire.position, fire.size) if fire != null else Rect2()

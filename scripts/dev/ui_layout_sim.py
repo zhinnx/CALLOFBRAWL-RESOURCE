@@ -27,17 +27,18 @@ def visible_size(w, h):
     return (720.0 * (w / h), 720.0)
 
 
-def rects(w, h):
+def rects(w, h, mirrored=False):
     vp = visible_size(w, h)
     s = max(0.62, min(1.9, vp[1] / 720.0))
     out = {}
-    out['joystick'] = (EDGE * s, vp[1] - EDGE * s - STICK_BOX * s, STICK_BOX * s, STICK_BOX * s)
-    fire_x = vp[0] - EDGE * s - FIRE_BOX * s
+    stick_x = (vp[0] - EDGE * s - STICK_BOX * s) if mirrored else (EDGE * s)
+    out['joystick'] = (stick_x, vp[1] - EDGE * s - STICK_BOX * s, STICK_BOX * s, STICK_BOX * s)
+    fire_x = ((EDGE * s) if mirrored else (vp[0] - EDGE * s - FIRE_BOX * s))
     fire_y = vp[1] - EDGE * s - FIRE_BOX * s
     out['fire'] = (fire_x, fire_y, FIRE_BOX * s, FIRE_BOX * s)
     btn = BUTTON * s
     gap = BUTTON_GAP * s
-    right_x = vp[0] - EDGE * s - btn
+    right_x = (EDGE * s + FIRE_BOX * s - btn) if mirrored else (vp[0] - EDGE * s - btn)
     y = fire_y - ACTION_STACK_GAP * s
     for name in ('pause', 'jump', 'ads', 'reload'):
         size_i = btn * (0.82 if name == 'pause' else 1.0)
@@ -104,11 +105,11 @@ def menu_check(w, h, label=''):
 BOTTOM_H = 118.0
 
 
-def hud_bottom_check(w, h, label='', hud_scale=1.0):
+def hud_bottom_check(w, h, label='', hud_scale=1.0, mirrored=False):
     """Mirror of hud_controller._paint_* after the re-layout, checked against the
     control rects the controller publishes. hud_scale is the user setting (0.75-1.4).
     """
-    vp, R = rects(w, h)
+    vp, R = rects(w, h, mirrored)
     W, H = vp
     s = hud_scale * max(0.75, H / 720.0)
     joy, fire, ads, reload, jump, pause = (R['joystick'], R['fire'], R['ads'],
@@ -121,7 +122,7 @@ def hud_bottom_check(w, h, label='', hud_scale=1.0):
     fire_rect = fire
     excl_x = min(strip_x, fire[0]) if strip_x > W * 0.45 else fire[0]
     excl_y = min(strip_y, fire[1])
-    touch_left_block = joy[0] + joy[2]
+    touch_left_block = 0.0 if mirrored else (joy[0] + joy[2])
 
     def covered(name, r):
         area = r[2] * r[3]
@@ -132,12 +133,16 @@ def hud_bottom_check(w, h, label='', hud_scale=1.0):
             probs.append((name, 'outside the viewport'))
 
     # right limit = left edge of the control cluster (same rule as the HUD)
-    right_limit = W - 30.0 * s
+    right_limit = W - 30.0 * s - ((W - joy[0]) if mirrored else 0.0)
     if excl_x > W * 0.45:
         right_limit = excl_x - 16.0 * s
+    right_limit = max(right_limit, W * 0.35)
 
     # health bar
+    hw0 = max(110.0 * s, min(W * 0.30, 240.0 * s))
     hx = max(28.0 * s, touch_left_block + 16.0 * s)
+    if mirrored:
+        hx = max(28.0 * s, W - (W - joy[0]) - 16.0 * s - hw0)
     hw = max(110.0 * s, min(min(W * 0.30, 240.0 * s), right_limit - 20.0 * s - hx))
     hw = min(hw, 240.0 * s)
     hy = H - 52.0 * s
@@ -169,9 +174,12 @@ def hud_bottom_check(w, h, label='', hud_scale=1.0):
     # scoreboard (hold SCORE button): must fit the viewport
     sb_h = min(H * 0.88, 96.0 * s + 30.0 * s * 10.0)
     band_left = touch_left_block + 10.0 * s
-    band_right = W - 26.0 * s
+    band_right = W - 26.0 * s - ((W - joy[0]) if mirrored else 0.0)
     if excl_x > W * 0.45:
         band_right = excl_x - 10.0 * s
+    elif mirrored:
+        band_left = max(band_left, excl_x + FIRE_BOX * s + 10.0 * s)
+    band_right = max(band_right, band_left + 200.0 * s)
     sb_w = max(220.0 * s, min(min(620.0 * s, W * 0.86), band_right - band_left))
     sb_x = min(max(W * 0.5 - sb_w * 0.5, band_left), max(band_left, band_right - sb_w))
     sb = (sb_x, (H - sb_h) * 0.5, sb_w, sb_h)
@@ -266,6 +274,8 @@ def sweep_all():
         for sc in (0.75, 1.0, 1.4):
             for n, msg in hud_bottom_check(w, h, hud_scale=sc):
                 lines.append('HUD x%.2f %s: %s' % (sc, n, msg))
+            for n, msg in hud_bottom_check(w, h, hud_scale=sc, mirrored=True):
+                lines.append('LEFT-HANDED HUD x%.2f %s: %s' % (sc, n, msg))
         for n, msg in menu_check(w, h):
             lines.append('MENU %s: %s' % (n, msg))
         for n, msg in modal_check(w, h):
